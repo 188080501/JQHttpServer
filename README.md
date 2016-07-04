@@ -38,4 +38,4 @@ https://github.com/188080501/JQHttpServer/issues
 
 本库性能只能说一般般，底层是poll注定了性能不是强项，以下是我在我电脑（ MacBookPro + 127.0.0.1 ）上，测出的性能。
 
-QPS：
+QPS：(等待更新)
