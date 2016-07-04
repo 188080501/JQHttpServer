@@ -32,7 +32,7 @@ https://github.com/188080501/JQHttpServer/issues
 
 ## 开发计划
 
-阶段|日期
+阶段|计划完成日期
 ---|---
 初始版本|已完成
 
