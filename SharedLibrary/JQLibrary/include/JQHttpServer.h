@@ -39,8 +39,9 @@
 #include <QMutex>
 #include <QHostAddress>
 
+class QIODevice;
 class QTcpServer;
-class QTcpSocket;
+class QLocalServer;
 class QThreadPool;
 class QHostAddress;
 class QTimer;
@@ -53,7 +54,7 @@ class Session: public QObject
     Q_OBJECT
 
 public:
-    Session( const QPointer< QTcpSocket > &tcpSocket );
+    Session( const QPointer< QIODevice > &tcpSocket );
 
     ~Session();
 
@@ -79,7 +80,7 @@ private:
     void inspectionBufferSetup2();
 
 private:
-    QPointer< QTcpSocket > tcpSocket_;
+    QPointer< QIODevice > ioDevice_;
     std::function< void(const QPointer< Session > &) > handleAcceptedCallback_;
     QSharedPointer< QTimer > timerForClose_;
 
@@ -97,31 +98,35 @@ private:
     qint64 waitWrittenByteCount_ = 0;
 };
 
-class Manage: public QObject
+class AbstractManage: public QObject
 {
     Q_OBJECT
 
 public:
-    Manage();
+    AbstractManage();
 
-    ~Manage();
+    ~AbstractManage();
 
     inline void setHttpAcceptedCallback(const std::function< void(const QPointer< Session > &session) > &httpAcceptedCallback)
     { httpAcceptedCallback_ = httpAcceptedCallback; }
 
-    inline bool isListening() const { return !tcpServer_.isNull(); }
+    virtual bool isRunning() = 0;
 
 public slots:
-    bool listen(const QHostAddress &address, const quint16 &port);
+    bool begin();
 
     void close();
 
-private:
-    bool startTcpSocketThread(const QHostAddress &address, const quint16 &port);
+protected:
+    virtual bool onStart() = 0;
+
+    virtual void onFinish() = 0;
+
+    bool startServerThread();
 
     void stopHandleThread();
 
-    void stopTcpSocketThread();
+    void stopServerThread();
 
     void newSession(const QPointer< Session > &session);
 
@@ -130,16 +135,64 @@ private:
 signals:
     void readyToClose();
 
-private:
+protected:
     QSharedPointer< QThreadPool > handleThreadPool_;
-    QSharedPointer< QThreadPool > tcpSocketThreadPool_;
-    QPointer< QTcpServer > tcpServer_;
+    QSharedPointer< QThreadPool > serverThreadPool_;
 
     QMutex mutex_;
 
     std::function< void(const QPointer< Session > &session) > httpAcceptedCallback_;
 
     QSet< Session * > availableSessions_;
+};
+
+class TcpServerManage: public AbstractManage
+{
+    Q_OBJECT
+
+public:
+    TcpServerManage() = default;
+
+    ~TcpServerManage();
+
+    bool listen(const QHostAddress &address, const quint16 &port);
+
+private:
+    bool isRunning();
+
+    bool onStart();
+
+    void onFinish();
+
+private:
+    QPointer< QTcpServer > tcpServer_;
+
+    QHostAddress listenAddress_;
+    quint16 listenPort_;
+};
+
+class LocalServerManage: public AbstractManage
+{
+    Q_OBJECT
+
+public:
+    LocalServerManage() = default;
+
+    ~LocalServerManage();
+
+    bool listen(const QString &name);
+
+private:
+    bool isRunning();
+
+    bool onStart();
+
+    void onFinish();
+
+private:
+    QPointer< QLocalServer > localServer_;
+
+    QString listenName_;
 };
 
 }

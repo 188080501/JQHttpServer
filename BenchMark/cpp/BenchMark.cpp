@@ -11,19 +11,19 @@
 
 void BenchMark::initTestCase()
 {
-    httpServerManage_.reset( new JQHttpServer::Manage );
+    tcpServerManage_.reset( new JQHttpServer::TcpServerManage );
 
-    httpServerManage_->setHttpAcceptedCallback( []( const auto &session )
+    tcpServerManage_->setHttpAcceptedCallback( []( const auto &session )
     {
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
     } );
 
-    QCOMPARE( (bool)httpServerManage_->listen( QHostAddress::Any, 23413 ), true );
+    QCOMPARE( (bool)tcpServerManage_->listen( QHostAddress::Any, 23413 ), true );
 }
 
 void BenchMark::cleanupTestCase()
 {
-    httpServerManage_->close();
+    tcpServerManage_->close();
 }
 
 void BenchMark::benchMarkForOnce()

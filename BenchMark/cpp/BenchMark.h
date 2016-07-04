@@ -7,8 +7,7 @@
 
 namespace JQHttpServer
 {
-class Session;
-class Manage;
+class TcpServerManage;
 }
 
 class BenchMark: public QObject
@@ -25,7 +24,7 @@ private slots:
     void benchMarkFor5000();
 
 private:
-    QSharedPointer< JQHttpServer::Manage > httpServerManage_;
+    QSharedPointer< JQHttpServer::TcpServerManage > tcpServerManage_;
 };
 
 #endif//__BenchMark_h__

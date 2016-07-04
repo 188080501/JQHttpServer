@@ -1,4 +1,4 @@
-// Qt lib import
+﻿// Qt lib import
 #include <QtCore>
 
 // JQLibrary import
@@ -8,14 +8,14 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    JQHttpServer::Manage httpServerManage;
+    JQHttpServer::TcpServerManage tcpServerManage;
 
-    httpServerManage.setHttpAcceptedCallback( []( const auto &session )
+    tcpServerManage.setHttpAcceptedCallback( []( const auto &session )
     {
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
     } );
 
-    qDebug() << "listen:" << httpServerManage.listen( QHostAddress::Any, 23412 );
+    qDebug() << "listen:" << tcpServerManage.listen( QHostAddress::Any, 23412 );
 
     return a.exec();
 }

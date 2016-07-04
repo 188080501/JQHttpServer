@@ -26,6 +26,8 @@
 #include <QThreadPool>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QLocalServer>
+#include <QLocalSocket>
 #include <QtConcurrent>
 
 using namespace JQHttpServer;
@@ -39,20 +41,20 @@ static QString replyTextFormat(
     );
 
 // Session
-Session::Session(const QPointer<QTcpSocket> &tcpSocket):
-    tcpSocket_( tcpSocket ),
+Session::Session(const QPointer<QIODevice> &tcpSocket):
+    ioDevice_( tcpSocket ),
     timerForClose_( new QTimer )
 {
     timerForClose_->setInterval( 30 * 1000 );
 
-    connect( tcpSocket_.data(), &QTcpSocket::readyRead, [ this ]()
+    connect( ioDevice_.data(), &QIODevice::readyRead, [ this ]()
     {
         if ( this->timerForClose_->isActive() )
         {
             timerForClose_->stop();
         }
 
-        this->buffer_.append( this->tcpSocket_->readAll() );
+        this->buffer_.append( this->ioDevice_->readAll() );
 
 //        qDebug() << this->buffer_;
 
@@ -61,7 +63,7 @@ Session::Session(const QPointer<QTcpSocket> &tcpSocket):
         timerForClose_->start();
     } );
 
-    connect( tcpSocket_.data(), &QTcpSocket::bytesWritten, [ this ](const auto &bytes)
+    connect( ioDevice_.data(), &QIODevice::bytesWritten, [ this ](const auto &bytes)
     {
         this->waitWrittenByteCount_ -= bytes;
 
@@ -84,9 +86,9 @@ Session::Session(const QPointer<QTcpSocket> &tcpSocket):
 
 Session::~Session()
 {
-    if ( !tcpSocket_.isNull() )
+    if ( !ioDevice_.isNull() )
     {
-        delete tcpSocket_.data();
+        delete ioDevice_.data();
     }
 }
 
@@ -98,7 +100,7 @@ void Session::replyText(const QString &replyData)
         return;
     }
 
-    if ( tcpSocket_.isNull() )
+    if ( ioDevice_.isNull() )
     {
         qDebug() << "JQHttpServer::Session::replyText: error1";
         this->deleteLater();
@@ -107,7 +109,7 @@ void Session::replyText(const QString &replyData)
 
     const auto &&data = replyTextFormat.arg( QString::number( replyData.size() ), replyData ).toUtf8();
     waitWrittenByteCount_ = data.size();
-    tcpSocket_->write( data );
+    ioDevice_->write( data );
 }
 
 void Session::inspectionBufferSetup1()
@@ -218,27 +220,22 @@ void Session::inspectionBufferSetup2()
     handleAcceptedCallback_( this );
 }
 
-// Manage
-Manage::Manage()
+// AbstractManage
+AbstractManage::AbstractManage()
 {
     handleThreadPool_.reset( new QThreadPool );
-    tcpSocketThreadPool_.reset( new QThreadPool );
+    serverThreadPool_.reset( new QThreadPool );
 
     handleThreadPool_->setMaxThreadCount( 2 );
-    tcpSocketThreadPool_->setMaxThreadCount( 1 );
+    serverThreadPool_->setMaxThreadCount( 1 );
 }
 
-Manage::~Manage()
+AbstractManage::~AbstractManage()
 {
-    if ( this->isListening() )
-    {
-        this->close();
-    }
-
     this->stopHandleThread();
 }
 
-bool Manage::listen(const QHostAddress &address, const quint16 &port)
+bool AbstractManage::begin()
 {
     if ( QThread::currentThread() != this->thread() )
     {
@@ -246,83 +243,68 @@ bool Manage::listen(const QHostAddress &address, const quint16 &port)
         return false;
     }
 
-    if ( !tcpServer_.isNull() )
+    if ( this->isRunning() )
     {
-        qDebug() << "JQHttpServer::Manage::close: error: already listen";
+        qDebug() << "JQHttpServer::Manage::close: error: already running";
         return false;
     }
 
-    return this->startTcpSocketThread( address, port );
+    return this->startServerThread();
 }
 
-void Manage::close()
+void AbstractManage::close()
 {
-    if ( tcpServer_.isNull() )
+    if ( !this->isRunning() )
     {
-        qDebug() << "JQHttpServer::Manage::close: error: not listen";
+        qDebug() << "JQHttpServer::Manage::close: error: not running";
         return;
     }
 
     emit readyToClose();
 
-    if ( tcpSocketThreadPool_->activeThreadCount() )
+    if ( serverThreadPool_->activeThreadCount() )
     {
-        this->stopTcpSocketThread();
+        this->stopServerThread();
     }
 }
 
-bool Manage::startTcpSocketThread(const QHostAddress &address, const quint16 &port)
+bool AbstractManage::startServerThread()
 {
     QSemaphore semaphore;
 
-    QtConcurrent::run( tcpSocketThreadPool_.data(), [ &semaphore, this, address, port ]()
+    QtConcurrent::run( serverThreadPool_.data(), [ &semaphore, this ]()
     {
         QEventLoop eventLoop;
-        QObject::connect( this, &Manage::readyToClose, &eventLoop, &QEventLoop::quit );
+        QObject::connect( this, &AbstractManage::readyToClose, &eventLoop, &QEventLoop::quit );
 
-        QTcpServer tcpServer;
-        QObject::connect( &tcpServer, &QTcpServer::newConnection, [ &tcpServer, this, address, port ]()
-        {
-            this->newSession( new Session( tcpServer.nextPendingConnection() ) );
-        } );
-
-        if ( !tcpServer.listen( address, port ) )
+        if ( !this->onStart() )
         {
             semaphore.release( 1 );
-            return;
         }
-
-        this->mutex_.lock();
-        this->tcpServer_ = &tcpServer;
-        this->mutex_.unlock();
 
         semaphore.release( 1 );
 
         eventLoop.exec();
 
-        this->mutex_.lock();
-        this->tcpServer_.clear();
-        this->mutex_.unlock();
-
-        tcpServer.close();
+        this->onFinish();
     } );
 
     semaphore.acquire( 1 );
 
-    return !tcpServer_.isNull();
+    return this->isRunning();
 }
 
-void Manage::stopHandleThread()
+void AbstractManage::stopHandleThread()
 {
     handleThreadPool_->waitForDone();
 }
 
-void Manage::stopTcpSocketThread()
+void AbstractManage::stopServerThread()
 {
-    tcpSocketThreadPool_->waitForDone();
+    serverThreadPool_->waitForDone();
 }
 
-void Manage::newSession(const QPointer< Session > &session)
+void AbstractManage::newSession(const QPointer< Session > &session)
 {
 //    qDebug() << "newConnection:" << session.data();
 
@@ -339,7 +321,7 @@ void Manage::newSession(const QPointer< Session > &session)
     availableSessions_.insert( session.data() );
 }
 
-void Manage::handleAccepted(const QPointer<Session> &session)
+void AbstractManage::handleAccepted(const QPointer<Session> &session)
 {
     QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
     {
@@ -351,4 +333,125 @@ void Manage::handleAccepted(const QPointer<Session> &session)
 
         this->httpAcceptedCallback_( session );
     } );
+}
+
+// TcpServerManage
+TcpServerManage::~TcpServerManage()
+{
+    if ( this->isRunning() )
+    {
+        this->close();
+    }
+}
+
+bool TcpServerManage::listen(const QHostAddress &address, const quint16 &port)
+{
+    listenAddress_ = address;
+    listenPort_ = port;
+
+    return this->begin();
+}
+
+bool TcpServerManage::isRunning()
+{
+    return !tcpServer_.isNull();
+}
+
+bool TcpServerManage::onStart()
+{
+    mutex_.lock();
+
+    tcpServer_ = new QTcpServer;
+
+    mutex_.unlock();
+
+    QObject::connect( tcpServer_.data(), &QTcpServer::newConnection, [ this ]()
+    {
+        this->newSession( new Session( this->tcpServer_->nextPendingConnection() ) );
+    } );
+
+    if ( !tcpServer_->listen( listenAddress_, listenPort_ ) )
+    {
+        mutex_.lock();
+
+        delete tcpServer_.data();
+        tcpServer_.clear();
+
+        mutex_.unlock();
+
+        return false;
+    }
+
+    return true;
+}
+
+void TcpServerManage::onFinish()
+{
+    this->mutex_.lock();
+
+    tcpServer_->close();
+    delete tcpServer_.data();
+    tcpServer_.clear();
+
+    this->mutex_.unlock();
+}
+
+// LocalServerManage
+LocalServerManage::~LocalServerManage()
+{
+    if ( this->isRunning() )
+    {
+        this->close();
+    }
+}
+
+bool LocalServerManage::listen(const QString &name)
+{
+    listenName_ = name;
+
+    return this->begin();
+}
+
+bool LocalServerManage::isRunning()
+{
+    return !localServer_.isNull();
+}
+
+bool LocalServerManage::onStart()
+{
+    mutex_.lock();
+
+    localServer_ = new QLocalServer;
+
+    mutex_.unlock();
+
+    QObject::connect( localServer_.data(), &QLocalServer::newConnection, [ this ]()
+    {
+        this->newSession( new Session( this->localServer_->nextPendingConnection() ) );
+    } );
+
+    if ( !localServer_->listen( listenName_ ) )
+    {
+        mutex_.lock();
+
+        delete localServer_.data();
+        localServer_.clear();
+
+        mutex_.unlock();
+
+        return false;
+    }
+
+    return true;
+}
+
+void LocalServerManage::onFinish()
+{
+    this->mutex_.lock();
+
+    localServer_->close();
+    delete localServer_.data();
+    localServer_.clear();
+
+    this->mutex_.unlock();
 }
