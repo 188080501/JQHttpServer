@@ -163,7 +163,7 @@ void HTTP::post(const QNetworkRequest &request,
 
 QPair< bool, QByteArray > HTTP::get(const QString &url, const int &timeout)
 {
-    QNetworkRequest networkRequest( { url } );
+    QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray buf;
 
     const auto &&flag = HTTP().get( networkRequest, buf, timeout );
@@ -183,7 +183,7 @@ QPair< bool, QByteArray > HTTP::get(const QNetworkRequest &request, const int &t
 
 QPair< bool, QByteArray > HTTP::post(const QString &url, const QByteArray &appendData, const int &timeout)
 {
-    QNetworkRequest networkRequest( { url } );
+    QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray buf;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
