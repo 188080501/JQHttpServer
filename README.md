@@ -9,11 +9,7 @@ JQHttpServer是基于Qt开发的轻量级HTTP服务器，目前支持GET和POST�
 * concurrent	
 * testlib（测试用，运行不需要）
 
-#### 支持的平台（理论上Qt支持的都可以，下面3个是我测试过的）
-
-* Linux
-* Windows
-* OS X
+理论上可以部署到任何Qt支持的平台上。
 
 推荐使用Linux系统或者Unix系统，因为在5.6后，Qt更换了Unix相关系统的底层模型，从select更换为了poll，这样子网络库的并发就脱离了1024个的限制。
 
