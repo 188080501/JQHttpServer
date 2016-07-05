@@ -29,16 +29,18 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QtConcurrent>
+#include <QJsonDocument>
+#include <QJsonValue>
 
 using namespace JQHttpServer;
 
 static QString replyTextFormat(
         "HTTP/1.1 200 OK\r\n"
-        "Content-Type: text/html;charset=UTF-8\r\n"
-        "Content-Length: %1\r\n"
+        "Content-Type: %1\r\n"
+        "Content-Length: %2\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
-        "%2"
+        "%3"
     );
 
 // Session
@@ -108,9 +110,54 @@ void Session::replyText(const QString &replyData)
         return;
     }
 
-    const auto &&data = replyTextFormat.arg( QString::number( replyData.toUtf8().size() ), replyData ).toUtf8();
+    const auto &&data = replyTextFormat.arg( "text;charset=UTF-8", QString::number( replyData.toUtf8().size() ), replyData ).toUtf8();
+
     waitWrittenByteCount_ = data.size();
     ioDevice_->write( data );
+}
+
+void Session::replyJsonObject(const QJsonObject &jsonObject)
+{
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyJsonObject", Qt::QueuedConnection, Q_ARG( QJsonObject, jsonObject ) );
+        return;
+    }
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyText: error1";
+        this->deleteLater();
+        return;
+    }
+
+    const auto &&data = QJsonDocument( jsonObject ).toJson();
+    const auto &&data2 = replyTextFormat.arg( "application/json;charset=UTF-8", QString::number( data.size() ), QString( data ) ).toUtf8();
+
+    waitWrittenByteCount_ = data2.size();
+    ioDevice_->write( data2 );
+}
+
+void Session::replyJsonArray(const QJsonArray &jsonArray)
+{
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyJsonArray", Qt::QueuedConnection, Q_ARG( QJsonArray, jsonArray ) );
+        return;
+    }
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyText: error1";
+        this->deleteLater();
+        return;
+    }
+
+    const auto &&data = QJsonDocument( jsonArray ).toJson();
+    const auto &&data2 = replyTextFormat.arg( "application/json;charset=UTF-8", QString::number( data.size() ), QString( data ) ).toUtf8();
+
+    waitWrittenByteCount_ = data2.size();
+    ioDevice_->write( data2 );
 }
 
 void Session::inspectionBufferSetup1()

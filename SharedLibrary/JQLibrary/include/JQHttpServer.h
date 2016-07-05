@@ -74,6 +74,10 @@ public:
 public slots:
     void replyText(const QString &replyData);
 
+    void replyJsonObject(const QJsonObject &jsonObject);
+
+    void replyJsonArray(const QJsonArray &jsonArray);
+
 private:
     void inspectionBufferSetup1();
 

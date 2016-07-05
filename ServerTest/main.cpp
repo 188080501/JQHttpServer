@@ -13,6 +13,8 @@ int main(int argc, char *argv[])
     tcpServerManage.setHttpAcceptedCallback( []( const auto &session )
     {
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
+//        session->replyJsonObject( { { { "message", "ok" } } } );
+//        session->replyJsonArray( { "a", "b", "c" } );
     } );
 
     qDebug() << "listen:" << tcpServerManage.listen( QHostAddress::Any, 23412 );
