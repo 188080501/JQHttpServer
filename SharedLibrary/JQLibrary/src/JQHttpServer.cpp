@@ -108,7 +108,7 @@ void Session::replyText(const QString &replyData)
         return;
     }
 
-    const auto &&data = replyTextFormat.arg( QString::number( replyData.size() ), replyData ).toUtf8();
+    const auto &&data = replyTextFormat.arg( QString::number( replyData.toUtf8().size() ), replyData ).toUtf8();
     waitWrittenByteCount_ = data.size();
     ioDevice_->write( data );
 }
