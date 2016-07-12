@@ -66,7 +66,7 @@ Session::Session(const QPointer<QIODevice> &tcpSocket):
         timerForClose_->start();
     } );
 
-    connect( ioDevice_.data(), &QIODevice::bytesWritten, [ this ](const auto &bytes)
+    connect( ioDevice_.data(), &QIODevice::bytesWritten, [ this ](const qint64 &bytes)
     {
         this->waitWrittenByteCount_ -= bytes;
 
@@ -356,14 +356,15 @@ void AbstractManage::newSession(const QPointer< Session > &session)
 {
 //    qDebug() << "newConnection:" << session.data();
 
-    session->setHandleAcceptedCallback( [ this ](const auto &session){ this->handleAccepted( session ); } );
+    session->setHandleAcceptedCallback( [ this ](const QPointer< JQHttpServer::Session > &session){ this->handleAccepted( session ); } );
 
-    connect( session.data(), &QObject::destroyed, [ this, session = session.data() ]()
+    auto session_ = session.data();
+    connect( session.data(), &QObject::destroyed, [ this, session_ ]()
     {
 //        qDebug() << "disConnection:" << session;
 
         this->mutex_.lock();
-        this->availableSessions_.remove( session );
+        this->availableSessions_.remove( session_ );
         this->mutex_.unlock();
     } );
     availableSessions_.insert( session.data() );

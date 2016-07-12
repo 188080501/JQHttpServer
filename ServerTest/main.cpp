@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 
     JQHttpServer::TcpServerManage tcpServerManage;
 
-    tcpServerManage.setHttpAcceptedCallback( []( const auto &session )
+    tcpServerManage.setHttpAcceptedCallback( []( const QPointer< JQHttpServer::Session > &session )
     {
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
 //        session->replyJsonObject( { { { "message", "ok" } } } );
