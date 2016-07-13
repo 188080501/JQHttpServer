@@ -78,6 +78,8 @@ public slots:
 
     void replyJsonArray(const QJsonArray &jsonArray);
 
+    void replyFile(const QString &filePath);
+
 private:
     void inspectionBufferSetup1();
 
@@ -100,6 +102,7 @@ private:
     QByteArray requestRawData_;
 
     qint64 waitWrittenByteCount_ = 0;
+    QSharedPointer< QIODevice > ioDeviceForReply_;
 };
 
 class AbstractManage: public QObject
@@ -107,7 +110,7 @@ class AbstractManage: public QObject
     Q_OBJECT
 
 public:
-    AbstractManage();
+    AbstractManage(const int &handleMaxThreadCount);
 
     ~AbstractManage();
 
@@ -155,7 +158,7 @@ class TcpServerManage: public AbstractManage
     Q_OBJECT
 
 public:
-    TcpServerManage() = default;
+    TcpServerManage(const int &handleMaxThreadCount = 2);
 
     ~TcpServerManage();
 
@@ -180,7 +183,7 @@ class LocalServerManage: public AbstractManage
     Q_OBJECT
 
 public:
-    LocalServerManage() = default;
+    LocalServerManage(const int &handleMaxThreadCount);
 
     ~LocalServerManage();
 

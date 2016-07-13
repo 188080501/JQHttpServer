@@ -31,6 +31,8 @@
 #include <QtConcurrent>
 #include <QJsonDocument>
 #include <QJsonValue>
+#include <QPointer>
+#include <QFile>
 
 using namespace JQHttpServer;
 
@@ -41,6 +43,14 @@ static QString replyTextFormat(
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
         "%3"
+    );
+
+static QString replyFileFormat(
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Disposition: attachment;filename=%1\r\n"
+        "Content-Length: %2\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n"
     );
 
 // Session
@@ -74,6 +84,19 @@ Session::Session(const QPointer<QIODevice> &tcpSocket):
         {
             this->deleteLater();
             return;
+        }
+
+        if ( !ioDeviceForReply_.isNull() )
+        {
+            if ( ioDeviceForReply_->atEnd() )
+            {
+                delete ioDeviceForReply_.data();
+                ioDeviceForReply_.clear();
+            }
+            else
+            {
+                ioDevice_->write( ioDeviceForReply_->read( 8 * 1024 ) );
+            }
         }
 
         if ( this->timerForClose_->isActive() )
@@ -126,7 +149,7 @@ void Session::replyJsonObject(const QJsonObject &jsonObject)
 
     if ( ioDevice_.isNull() )
     {
-        qDebug() << "JQHttpServer::Session::replyText: error1";
+        qDebug() << "JQHttpServer::Session::replyJsonObject: error1";
         this->deleteLater();
         return;
     }
@@ -148,7 +171,7 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
 
     if ( ioDevice_.isNull() )
     {
-        qDebug() << "JQHttpServer::Session::replyText: error1";
+        qDebug() << "JQHttpServer::Session::replyJsonArray: error1";
         this->deleteLater();
         return;
     }
@@ -158,6 +181,38 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
 
     waitWrittenByteCount_ = data2.size();
     ioDevice_->write( data2 );
+}
+
+void Session::replyFile(const QString &filePath)
+{
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, filePath ) );
+        return;
+    }
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: error1";
+        this->deleteLater();
+        return;
+    }
+
+    ioDeviceForReply_.reset( new QFile( filePath ) );
+    QPointer< QFile > file = ( qobject_cast< QFile * >( ioDeviceForReply_.data() ) );
+
+    if ( !file->open( QIODevice::ReadOnly ) )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: open file error:" << filePath;
+        ioDeviceForReply_.clear();
+        this->deleteLater();
+        return;
+    }
+
+    const auto &&data = replyFileFormat.arg( QFileInfo( filePath ).fileName(), QString::number( file->size() ) ).toUtf8();
+
+    waitWrittenByteCount_ = data.size() + file->size();
+    ioDevice_->write( data );
 }
 
 void Session::inspectionBufferSetup1()
@@ -269,12 +324,12 @@ void Session::inspectionBufferSetup2()
 }
 
 // AbstractManage
-AbstractManage::AbstractManage()
+AbstractManage::AbstractManage(const int &handleMaxThreadCount)
 {
     handleThreadPool_.reset( new QThreadPool );
     serverThreadPool_.reset( new QThreadPool );
 
-    handleThreadPool_->setMaxThreadCount( 2 );
+    handleThreadPool_->setMaxThreadCount( handleMaxThreadCount );
     serverThreadPool_->setMaxThreadCount( 1 );
 }
 
@@ -385,6 +440,10 @@ void AbstractManage::handleAccepted(const QPointer<Session> &session)
 }
 
 // TcpServerManage
+TcpServerManage::TcpServerManage(const int &handleMaxThreadCount):
+    AbstractManage( handleMaxThreadCount )
+{ }
+
 TcpServerManage::~TcpServerManage()
 {
     if ( this->isRunning() )
@@ -446,6 +505,10 @@ void TcpServerManage::onFinish()
 }
 
 // LocalServerManage
+LocalServerManage::LocalServerManage(const int &handleMaxThreadCount):
+    AbstractManage( handleMaxThreadCount )
+{ }
+
 LocalServerManage::~LocalServerManage()
 {
     if ( this->isRunning() )
