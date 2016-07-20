@@ -252,7 +252,7 @@ void Session::inspectionBufferSetup1()
                 if ( ( requestMethodToken_ != "GET" ) &&
                      ( requestMethodToken_ != "POST" ) )
                 {
-                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error3";
+                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error3:" << requestMethodToken_;
                     this->deleteLater();
                     return;
                 }
