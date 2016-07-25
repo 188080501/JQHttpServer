@@ -1,5 +1,6 @@
 ﻿// Qt lib import
 #include <QtCore>
+#include <QImage>
 
 // JQLibrary import
 #include "JQHttpServer.h"
@@ -19,6 +20,7 @@ int main(int argc, char *argv[])
 //        session->replyJsonObject( { { { "message", "ok" } } } );
 //        session->replyJsonArray( { "a", "b", "c" } );
 //        session->replyFile( "/Users/jason/Desktop/Test1.Test2" );
+//        session->replyImage( QImage( "/Users/jason/Desktop/Test.png" ) );
     } );
 
     qDebug() << "listen:" << tcpServerManage.listen( QHostAddress::Any, 23412 );

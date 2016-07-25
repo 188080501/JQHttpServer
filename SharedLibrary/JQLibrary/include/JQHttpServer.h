@@ -45,6 +45,7 @@ class QLocalServer;
 class QThreadPool;
 class QHostAddress;
 class QTimer;
+class QImage;
 
 namespace JQHttpServer
 {
@@ -79,6 +80,8 @@ public slots:
     void replyJsonArray(const QJsonArray &jsonArray);
 
     void replyFile(const QString &filePath);
+
+    void replyImage(const QImage &image);
 
 private:
     void inspectionBufferSetup1();

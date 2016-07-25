@@ -28,11 +28,14 @@
 #include <QTcpSocket>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QtConcurrent>
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QPointer>
 #include <QFile>
+#include <QImage>
+#include <QBuffer>
+
+#include <QtConcurrent>
 
 using namespace JQHttpServer;
 
@@ -49,6 +52,14 @@ static QString replyFileFormat(
         "HTTP/1.1 200 OK\r\n"
         "Content-Disposition: attachment;filename=%1\r\n"
         "Content-Length: %2\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n"
+    );
+
+static QString replyImageFormat(
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: image/png\r\n"
+        "Content-Length: %1\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
     );
@@ -212,6 +223,48 @@ void Session::replyFile(const QString &filePath)
     const auto &&data = replyFileFormat.arg( QFileInfo( filePath ).fileName(), QString::number( file->size() ) ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
+    ioDevice_->write( data );
+}
+
+void Session::replyImage(const QImage &image)
+{
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ) );
+        return;
+    }
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: error1";
+        this->deleteLater();
+        return;
+    }
+
+    auto buffer = new QBuffer;
+
+    if ( !buffer->open( QIODevice::ReadWrite ) )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: open buffer error";
+        delete buffer;
+        this->deleteLater();
+        return;
+    }
+
+    if ( !image.save( buffer, "PNG" ) )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: save image to buffer error";
+        delete buffer;
+        this->deleteLater();
+        return;
+    }
+
+    ioDeviceForReply_.reset( buffer );
+    ioDeviceForReply_->seek( 0 );
+
+    const auto &&data = replyImageFormat.arg( QString::number( buffer->buffer().size() ) ).toUtf8();
+
+    waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write( data );
 }
 
