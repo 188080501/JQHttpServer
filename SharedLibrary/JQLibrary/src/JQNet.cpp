@@ -41,7 +41,7 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
 
         if ( ridVm && interface.humanReadableName().startsWith( "vm" ) ) { continue; }
 
-        for( const auto &entry: interface.addressEntries() )
+        for ( const auto &entry: interface.addressEntries() )
         {
             if ( entry.ip().toIPv4Address() )
             {
