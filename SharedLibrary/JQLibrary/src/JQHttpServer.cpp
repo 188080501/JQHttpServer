@@ -165,7 +165,7 @@ void Session::replyJsonObject(const QJsonObject &jsonObject)
         return;
     }
 
-    const auto &&data = QJsonDocument( jsonObject ).toJson();
+    const auto &&data = QJsonDocument( jsonObject ).toJson( QJsonDocument::Compact );
     const auto &&data2 = replyTextFormat.arg( "application/json;charset=UTF-8", QString::number( data.size() ), QString( data ) ).toUtf8();
 
     waitWrittenByteCount_ = data2.size();
@@ -187,7 +187,7 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
         return;
     }
 
-    const auto &&data = QJsonDocument( jsonArray ).toJson();
+    const auto &&data = QJsonDocument( jsonArray ).toJson( QJsonDocument::Compact );
     const auto &&data2 = replyTextFormat.arg( "application/json;charset=UTF-8", QString::number( data.size() ), QString( data ) ).toUtf8();
 
     waitWrittenByteCount_ = data2.size();
