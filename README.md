@@ -28,12 +28,6 @@ GitHub地址：https://github.com/188080501/JQHttpServer
 或者直接在GitHub上提交问题：
 https://github.com/188080501/JQHttpServer/issues
 
-## 开发计划
-
-阶段|计划完成日期
----|---
-初始版本|已完成
-
 ## 性能介绍
 
 本库性能只能说一般般，底层是poll，而且又有一些跨线程操作。
