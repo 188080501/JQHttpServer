@@ -19,7 +19,7 @@
 #define __JQNet_h__
 
 #ifndef QT_NETWORK_LIB
-#   error("Plwaer add network in pro file")
+#   error("Please add network in pro file")
 #endif
 
 // C++ lib import

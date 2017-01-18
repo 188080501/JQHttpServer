@@ -19,11 +19,11 @@
 #define __JQHttpServer_h__
 
 #ifndef QT_NETWORK_LIB
-#   error("Plwaer add network in pro file")
+#   error("Please add network in pro file")
 #endif
 
 #ifndef QT_CONCURRENT_LIB
-#   error("Plwaer add concurrent in pro file")
+#   error("Please add concurrent in pro file")
 #endif
 
 // C++ lib import
