@@ -13,7 +13,7 @@ void BenchMark::initTestCase()
 {
     tcpServerManage_.reset( new JQHttpServer::TcpServerManage );
 
-    tcpServerManage_->setHttpAcceptedCallback( []( const auto &session )
+    tcpServerManage_->setHttpAcceptedCallback( [ ]( const QPointer< JQHttpServer::Session > &session )
     {
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
     } );

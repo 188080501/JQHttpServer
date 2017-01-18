@@ -67,7 +67,7 @@ bool HTTP::get(const QNetworkRequest &request, QByteArray &target, const int &ti
     target.clear();
 
     QEventLoop eventLoop;
-    auto reply = manage_.get(request);
+    auto reply = manage_.get( request );
     bool failFlag = false;
 
     this->handle(
@@ -97,14 +97,14 @@ void HTTP::get(const QNetworkRequest &request,
                const std::function<void (const QNetworkReply::NetworkError &)> &onError,
                const int &timeout)
 {
-    auto reply = manage_.get(request);
+    auto reply = manage_.get( request );
 
     this->handle(
         reply,
         timeout,
         onFinished,
         onError,
-        [=]()
+        [ onError ]()
         {
             onError(QNetworkReply::TimeoutError);
         }
@@ -116,25 +116,25 @@ bool HTTP::post(const QNetworkRequest &request, const QByteArray &appendData, QB
     target.clear();
 
     QEventLoop eventLoop;
-    auto reply = manage_.post(request, appendData);
+    auto reply = manage_.post( request, appendData );
     bool failFlag = false;
 
     this->handle(
         reply,
         timeout,
-        [&](const QByteArray &data)
+        [ &target, &eventLoop ](const QByteArray &data)
         {
             target = data;
-            eventLoop.exit(1);
+            eventLoop.exit( true );
         },
-        [&](const QNetworkReply::NetworkError &)
+        [ &eventLoop ](const QNetworkReply::NetworkError &)
         {
-            eventLoop.exit(0);
+            eventLoop.exit( false );
         },
-        [&]()
+        [ &failFlag, &eventLoop ]()
         {
             failFlag = true;
-            eventLoop.exit(0);
+            eventLoop.exit( false );
         }
     );
 
@@ -147,14 +147,14 @@ void HTTP::post(const QNetworkRequest &request,
                 const std::function<void (const QNetworkReply::NetworkError &)> &onError,
                 const int &timeout)
 {
-    auto reply = manage_.post(request, appendData);
+    auto reply = manage_.post( request, appendData );
 
     this->handle(
         reply,
         timeout,
         onFinished,
         onError,
-        [=]()
+        [ onError ]()
         {
             onError( QNetworkReply::TimeoutError );
         }
@@ -208,34 +208,47 @@ void HTTP::handle(QNetworkReply *reply, const int &timeout,
                   const std::function<void (const QNetworkReply::NetworkError &)> &onError,
                   const std::function<void ()> &onTimeout)
 {
-    QTimer *timer = NULL;
-    if (timeout)
+    QTimer *timer = nullptr;
+    if ( timeout )
     {
         timer = new QTimer;
         timer->setSingleShot(true);
-        QObject::connect(timer, &QTimer::timeout, [=]()
+
+        QObject::connect( timer, &QTimer::timeout, [ timer, onTimeout ]()
         {
             onTimeout();
             timer->deleteLater();
-        });
-        timer->start(timeout);
+        } );
+        timer->start( timeout );
     }
 
-    QObject::connect(reply, &QNetworkReply::finished, [=]()
+    QObject::connect( reply, &QNetworkReply::finished, [ reply, timer, onFinished ]()
     {
-        if (timer)
+        if ( timer )
         {
             timer->deleteLater();
         }
-        onFinished(reply->readAll());
-    });
 
-    QObject::connect(reply, (void(QNetworkReply::*)(QNetworkReply::NetworkError))&QNetworkReply::error, [=](const QNetworkReply::NetworkError &code)
+        onFinished( reply->readAll() );
+    } );
+
+#ifndef QT_NO_SSL
+    if ( reply->url().toString().toLower().startsWith( "https" ) )
     {
-        if (timer)
+        QObject::connect( reply, ( void( QNetworkReply::* )( QList< QSslError > ) )&QNetworkReply::sslErrors, [ reply ](const QList< QSslError > &errors)
+        {
+            qDebug() << "HTTP::handle: ignoreSslErrors:" << errors;
+            reply->ignoreSslErrors();
+        } );
+    }
+#endif
+
+    QObject::connect( reply, ( void( QNetworkReply::* )( QNetworkReply::NetworkError ) )&QNetworkReply::error, [ reply, timer, onError ](const QNetworkReply::NetworkError &code)
+    {
+        if ( timer )
         {
             timer->deleteLater();
         }
-        onError(code);
-    });
+        onError( code );
+    } );
 }

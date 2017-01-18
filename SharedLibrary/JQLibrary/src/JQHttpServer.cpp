@@ -80,8 +80,6 @@ Session::Session(const QPointer<QIODevice> &tcpSocket):
 
         this->buffer_.append( this->ioDevice_->readAll() );
 
-//        qDebug() << this->buffer_;
-
         this->inspectionBufferSetup1();
 
         timerForClose_->start();
@@ -137,6 +135,13 @@ void Session::replyText(const QString &replyData)
         return;
     }
 
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyText: already reply";
+        return;
+    }
+    alreadyReply_ = true;
+
     if ( ioDevice_.isNull() )
     {
         qDebug() << "JQHttpServer::Session::replyText: error1";
@@ -157,6 +162,13 @@ void Session::replyJsonObject(const QJsonObject &jsonObject)
         QMetaObject::invokeMethod( this, "replyJsonObject", Qt::QueuedConnection, Q_ARG( QJsonObject, jsonObject ) );
         return;
     }
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyJsonObject: already reply";
+        return;
+    }
+    alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
     {
@@ -180,6 +192,13 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
         return;
     }
 
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyJsonArray: already reply";
+        return;
+    }
+    alreadyReply_ = true;
+
     if ( ioDevice_.isNull() )
     {
         qDebug() << "JQHttpServer::Session::replyJsonArray: error1";
@@ -201,6 +220,13 @@ void Session::replyFile(const QString &filePath)
         QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, filePath ) );
         return;
     }
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: already reply";
+        return;
+    }
+    alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
     {
@@ -233,6 +259,13 @@ void Session::replyImage(const QImage &image)
         QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ) );
         return;
     }
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        return;
+    }
+    alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
     {
@@ -309,10 +342,6 @@ void Session::inspectionBufferSetup1()
                     this->deleteLater();
                     return;
                 }
-
-//                qDebug() << "requestMethodToken:" << requestMethodToken_;
-//                qDebug() << "requestUrl:" << requestUrl_;
-//                qDebug() << "requestCrlf:" << requestCrlf_;
             }
             else if ( splitFlagIndex == 0 )
             {
@@ -349,8 +378,6 @@ void Session::inspectionBufferSetup1()
                 }
 
                 headersData_[ key ] = value;
-
-//                qDebug() << "headerData:" << key << value;
             }
         }
     }
@@ -364,8 +391,6 @@ void Session::inspectionBufferSetup2()
 {
     requestRawData_ = buffer_;
     buffer_.clear();
-
-//    qDebug() << "requestRawData:" << requestRawData_;
 
     if ( !handleAcceptedCallback_ )
     {
@@ -462,15 +487,11 @@ void AbstractManage::stopServerThread()
 
 void AbstractManage::newSession(const QPointer< Session > &session)
 {
-//    qDebug() << "newConnection:" << session.data();
-
     session->setHandleAcceptedCallback( [ this ](const QPointer< JQHttpServer::Session > &session){ this->handleAccepted( session ); } );
 
     auto session_ = session.data();
     connect( session.data(), &QObject::destroyed, [ this, session_ ]()
     {
-//        qDebug() << "disConnection:" << session;
-
         this->mutex_.lock();
         this->availableSessions_.remove( session_ );
         this->mutex_.unlock();

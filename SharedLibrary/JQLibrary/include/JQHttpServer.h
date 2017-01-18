@@ -101,6 +101,7 @@ private:
 
     QMap< QString, QString > headersData_;
     bool headerAcceptedFinish_ = false;
+    bool alreadyReply_ = false;
 
     QByteArray requestRawData_;
 
