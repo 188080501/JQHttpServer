@@ -21,6 +21,9 @@ int main(int argc, char *argv[])
 //        session->replyJsonArray( { "a", "b", "c" } );
 //        session->replyFile( "/Users/jason/Desktop/Test1.Test2" );
 //        session->replyImage( QImage( "/Users/jason/Desktop/Test.png" ) );
+
+        // 注1：因为一个session对应一个单一的HTTP请求，所以session只能reply一次
+        // 注2：在reply后，session的生命周期不可控，所以reply后不要再调用session的接口了
     } );
 
     qDebug() << "listen:" << tcpServerManage.listen( QHostAddress::Any, 23412 );
