@@ -24,10 +24,6 @@
 #include <QMetaObject>
 #include <QThread>
 #include <QThreadPool>
-#include <QTcpServer>
-#include <QTcpSocket>
-#include <QLocalServer>
-#include <QLocalSocket>
 #include <QJsonDocument>
 #include <QJsonValue>
 #include <QPointer>
@@ -36,6 +32,16 @@
 #include <QBuffer>
 
 #include <QtConcurrent>
+
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QLocalServer>
+#include <QLocalSocket>
+#ifndef QT_NO_SSL
+#   include <QSslSocket>
+#   include <QSslKey>
+#   include <QSslCertificate>
+#endif
 
 using namespace JQHttpServer;
 
@@ -78,7 +84,11 @@ Session::Session(const QPointer<QIODevice> &tcpSocket):
             timerForClose_->stop();
         }
 
-        this->buffer_.append( this->ioDevice_->readAll() );
+        const auto &&data = this->ioDevice_->readAll();
+
+//        qDebug() << data;
+
+        this->buffer_.append( data );
 
         this->inspectionBufferSetup1();
 
@@ -310,8 +320,22 @@ void Session::inspectionBufferSetup1()
             static QByteArray splitFlag( "\r\n" );
 
             auto splitFlagIndex = buffer_.indexOf( splitFlag );
-            if ( splitFlagIndex == -1 ) { return; }
 
+            // 没有获取到分割标记，意味着数据不全
+            if ( splitFlagIndex == -1 )
+            {
+                // 没有获取到MethodToken但是缓冲区内已经有了数据，这可能是一个无效的连接
+                if ( requestMethodToken_.isEmpty() && ( buffer_.size() > 4 ) )
+                {
+                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error0";
+                    this->deleteLater();
+                    return;
+                }
+
+                return;
+            }
+
+            // 如果未获取到MethodToken并且已经定位到了分割标记符，那么直接放弃这个连接
             if ( requestMethodToken_.isEmpty() && ( splitFlagIndex == 0 ) )
             {
                 qDebug() << "JQHttpServer::Session::inspectionBuffer: error1";
@@ -319,6 +343,7 @@ void Session::inspectionBufferSetup1()
                 return;
             }
 
+            // 如果没有获取到MethodToken则先尝试分析MethodToken
             if ( requestMethodToken_.isEmpty() )
             {
                 auto requestLineDatas = buffer_.mid( 0, splitFlagIndex ).split( ' ' );
@@ -577,6 +602,122 @@ void TcpServerManage::onFinish()
 
     this->mutex_.unlock();
 }
+
+// SslServerManage
+#ifndef QT_NO_SSL
+namespace JQHttpServer
+{
+
+class SslServerHelper: public QTcpServer
+{
+    void incomingConnection(qintptr socketDescriptor)
+    {
+        onIncomingConnectionCallback_( socketDescriptor );
+    }
+
+public:
+    std::function< void(qintptr socketDescriptor) > onIncomingConnectionCallback_;
+};
+
+}
+
+SslServerManage::SslServerManage(const int &handleMaxThreadCount):
+    AbstractManage( handleMaxThreadCount )
+{ }
+
+SslServerManage::~SslServerManage()
+{
+    if ( this->isRunning() )
+    {
+        this->close();
+    }
+}
+
+bool SslServerManage::listen(
+        const QHostAddress &address,
+        const quint16 &port,
+        const QString &crtFilePath,
+        const QString &keyFilePath
+    )
+{
+    listenAddress_ = address;
+    listenPort_ = port;
+
+    QFile fileForCrt( crtFilePath );
+    if ( !fileForCrt.open( QIODevice::ReadOnly ) )
+    {
+        qDebug() << "SslServerManage::listen: error: can not open file:" << crtFilePath;
+        return -1;
+    }
+
+    QFile fileForKey( keyFilePath );
+    if ( !fileForKey.open( QIODevice::ReadOnly ) )
+    {
+        qDebug() << "SslServerManage::listen: error: can not open file:" << keyFilePath;
+        return -1;
+    }
+
+    certificate_.reset( new QSslCertificate( fileForCrt.readAll() ) );
+    sslKey_.reset( new QSslKey( fileForKey.readAll(), QSsl::Rsa ) );
+
+    return this->begin();
+}
+
+bool SslServerManage::isRunning()
+{
+    return !tcpServer_.isNull();
+}
+
+bool SslServerManage::onStart()
+{
+    mutex_.lock();
+
+    tcpServer_ = new SslServerHelper;
+
+    mutex_.unlock();
+
+    tcpServer_->onIncomingConnectionCallback_ = [ this ](qintptr socketDescriptor)
+    {
+        auto sslSocket = new QSslSocket;
+
+        sslSocket->setLocalCertificate( *certificate_ );
+        sslSocket->setPrivateKey( *sslKey_ );
+
+        QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
+        {
+            this->newSession( new Session( sslSocket ) );
+        } );
+
+        sslSocket->setSocketDescriptor( socketDescriptor );
+        sslSocket->startServerEncryption();
+    };
+
+    if ( !tcpServer_->listen( listenAddress_, listenPort_ ) )
+    {
+        mutex_.lock();
+
+        delete tcpServer_.data();
+        tcpServer_.clear();
+
+        mutex_.unlock();
+
+        return false;
+    }
+
+    return true;
+}
+
+void SslServerManage::onFinish()
+{
+    this->mutex_.lock();
+
+    tcpServer_->close();
+    delete tcpServer_.data();
+    tcpServer_.clear();
+
+    this->mutex_.unlock();
+}
+#endif
 
 // LocalServerManage
 LocalServerManage::LocalServerManage(const int &handleMaxThreadCount):

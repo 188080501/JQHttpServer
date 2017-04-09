@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>server.crt</file>
+        <file>server.csr</file>
+        <file>server.key</file>
+        <file>server.pass.key</file>
+    </qresource>
+</RCC>

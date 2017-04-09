@@ -8,6 +8,9 @@
 namespace JQHttpServer
 {
 class TcpServerManage;
+#ifndef QT_NO_SSL
+class SslServerManage;
+#endif
 }
 
 class OverallTest: public QObject
@@ -25,8 +28,21 @@ private slots:
 
     void cleanupTestCase();
 
+    void httpGetTest();
+
+    void httpPostTest();
+
+#ifndef QT_NO_SSL
+    void httpsGetTest();
+
+    void httpsPostTest();
+#endif
+
 private:
-    QSharedPointer< JQHttpServer::TcpServerManage > tcpServerManage_;
+    QSharedPointer< JQHttpServer::TcpServerManage > httpServerManage_;
+#ifndef QT_NO_SSL
+    QSharedPointer< JQHttpServer::SslServerManage > httpsServerManage_;
+#endif
 };
 
 #endif//__OverallTest_h__

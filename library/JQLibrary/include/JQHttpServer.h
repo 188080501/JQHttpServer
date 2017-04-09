@@ -40,12 +40,14 @@
 #include <QHostAddress>
 
 class QIODevice;
-class QTcpServer;
-class QLocalServer;
 class QThreadPool;
 class QHostAddress;
 class QTimer;
 class QImage;
+class QTcpServer;
+class QLocalServer;
+class QSslCertificate;
+class QSslKey;
 
 namespace JQHttpServer
 {
@@ -118,7 +120,7 @@ class AbstractManage: public QObject
 public:
     AbstractManage(const int &handleMaxThreadCount);
 
-    ~AbstractManage();
+    virtual ~AbstractManage();
 
     inline void setHttpAcceptedCallback(const std::function< void(const QPointer< Session > &session) > &httpAcceptedCallback)
     { httpAcceptedCallback_ = httpAcceptedCallback; }
@@ -184,6 +186,44 @@ private:
     QHostAddress listenAddress_;
     quint16 listenPort_;
 };
+
+#ifndef QT_NO_SSL
+class SslServerHelper;
+
+class SslServerManage: public AbstractManage
+{
+    Q_OBJECT
+    Q_DISABLE_COPY( SslServerManage )
+
+public:
+    SslServerManage(const int &handleMaxThreadCount = 2);
+
+    ~SslServerManage();
+
+    bool listen(
+            const QHostAddress &address,
+            const quint16 &port,
+            const QString &crtFilePath,
+            const QString &keyFilePath
+        );
+
+private:
+    bool isRunning();
+
+    bool onStart();
+
+    void onFinish();
+
+private:
+    QPointer< SslServerHelper > tcpServer_;
+
+    QHostAddress listenAddress_;
+    quint16 listenPort_;
+
+    QSharedPointer< QSslCertificate > certificate_;
+    QSharedPointer< QSslKey > sslKey_;
+};
+#endif
 
 class LocalServerManage: public AbstractManage
 {

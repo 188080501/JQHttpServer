@@ -13,3 +13,6 @@ HEADERS += \
 SOURCES += \
     $$PWD/cpp/main.cpp \
     $$PWD/cpp/OverallTest.cpp
+
+RESOURCES += \
+    $$PWD/key/key.qrc
