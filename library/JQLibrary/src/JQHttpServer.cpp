@@ -647,14 +647,14 @@ bool SslServerManage::listen(
     if ( !fileForCrt.open( QIODevice::ReadOnly ) )
     {
         qDebug() << "SslServerManage::listen: error: can not open file:" << crtFilePath;
-        return -1;
+        return false;
     }
 
     QFile fileForKey( keyFilePath );
     if ( !fileForKey.open( QIODevice::ReadOnly ) )
     {
         qDebug() << "SslServerManage::listen: error: can not open file:" << keyFilePath;
-        return -1;
+        return false;
     }
 
     certificate_.reset( new QSslCertificate( fileForCrt.readAll() ) );
