@@ -13,6 +13,12 @@ class TcpServerManage;
 class BenchMark: public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY( BenchMark )
+
+public:
+    BenchMark() = default;
+
+    ~BenchMark() = default;
 
 private slots:
     void initTestCase();

@@ -53,6 +53,7 @@ namespace JQHttpServer
 class Session: public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY( Session )
 
 public:
     Session( const QPointer< QIODevice > &tcpSocket );
@@ -112,6 +113,7 @@ private:
 class AbstractManage: public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY( AbstractManage )
 
 public:
     AbstractManage(const int &handleMaxThreadCount);
@@ -160,6 +162,7 @@ protected:
 class TcpServerManage: public AbstractManage
 {
     Q_OBJECT
+    Q_DISABLE_COPY( TcpServerManage )
 
 public:
     TcpServerManage(const int &handleMaxThreadCount = 2);
@@ -185,6 +188,7 @@ private:
 class LocalServerManage: public AbstractManage
 {
     Q_OBJECT
+    Q_DISABLE_COPY( LocalServerManage )
 
 public:
     LocalServerManage(const int &handleMaxThreadCount);

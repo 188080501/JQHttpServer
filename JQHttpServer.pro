@@ -1,6 +1,4 @@
 TEMPLATE = subdirs
 
-SUBDIRS += \
-    ServerTest \
-    ClientTest \
-    BenchMark
+SUBDIRS += tester
+SUBDIRS += demos
