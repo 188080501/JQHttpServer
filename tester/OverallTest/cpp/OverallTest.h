@@ -28,6 +28,8 @@ private slots:
 
     void cleanupTestCase();
 
+    void connectTest();
+
     void httpGetTest();
 
     void httpPostTest();

@@ -40,6 +40,20 @@ void OverallTest::cleanupTestCase()
 #endif
 }
 
+void OverallTest::connectTest()
+{
+    for ( auto index = 0; index < 200; ++index )
+    {
+        QTcpSocket socket;
+
+        socket.connectToHost( "127.0.0.1", 24680 );
+        QCOMPARE( socket.waitForConnected( 1000 ), true );
+
+        socket.write( "HTTP" );
+        QCOMPARE( socket.waitForBytesWritten( 1000 ), true );
+    }
+}
+
 void OverallTest::httpGetTest()
 {
     const auto &&reply = JQNet::HTTP::get( "http://127.0.0.1:24680/httpGetTest/" );

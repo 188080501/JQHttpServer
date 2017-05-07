@@ -139,6 +139,13 @@ Session::~Session()
 
 void Session::replyText(const QString &replyData)
 {
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyText: current session this is null";
+        return;
+    }
+
     if ( QThread::currentThread() != this->thread() )
     {
         QMetaObject::invokeMethod( this, "replyText", Qt::QueuedConnection, Q_ARG( QString, replyData ) );
@@ -167,6 +174,13 @@ void Session::replyText(const QString &replyData)
 
 void Session::replyJsonObject(const QJsonObject &jsonObject)
 {
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyJsonObject: current session this is null";
+        return;
+    }
+
     if ( QThread::currentThread() != this->thread() )
     {
         QMetaObject::invokeMethod( this, "replyJsonObject", Qt::QueuedConnection, Q_ARG( QJsonObject, jsonObject ) );
@@ -196,6 +210,13 @@ void Session::replyJsonObject(const QJsonObject &jsonObject)
 
 void Session::replyJsonArray(const QJsonArray &jsonArray)
 {
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyJsonArray: current session this is null";
+        return;
+    }
+
     if ( QThread::currentThread() != this->thread() )
     {
         QMetaObject::invokeMethod( this, "replyJsonArray", Qt::QueuedConnection, Q_ARG( QJsonArray, jsonArray ) );
@@ -225,6 +246,13 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
 
 void Session::replyFile(const QString &filePath)
 {
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: current session this is null";
+        return;
+    }
+
     if ( QThread::currentThread() != this->thread() )
     {
         QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, filePath ) );
@@ -264,6 +292,13 @@ void Session::replyFile(const QString &filePath)
 
 void Session::replyImage(const QImage &image)
 {
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: current session this is null";
+        return;
+    }
+
     if ( QThread::currentThread() != this->thread() )
     {
         QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ) );
