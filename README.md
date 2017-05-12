@@ -2,7 +2,7 @@
 
 JQHttpServer是基于Qt开发的轻量级HTTP/HTTPS服务器，目前支持GET和POST两个协议。
 
-底层有QTcpSocket、QSslSocket和LocalSocket三个版本，方便使用。
+底层有QTcpSocket、QSslSocket和QLocalSocket三个版本，方便使用。
 
 #### 用到的Qt库有：
 
