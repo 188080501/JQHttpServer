@@ -42,39 +42,65 @@ QString getHostName();
 
 class HTTP
 {
+    Q_DISABLE_COPY( HTTP )
+
+public:
+    HTTP() = default;
+
+    ~HTTP() = default;
+
 public:
     inline QNetworkAccessManager &manage() { return manage_; }
 
 
-    bool get(const QNetworkRequest &request, QByteArray &target, const int &timeout = 30000);
+    bool get(const QNetworkRequest &request, QByteArray &target, const int &timeout = 30 * 1000);
 
-    void get(const QNetworkRequest &request,
-             const std::function< void(const QByteArray &data) > &onFinished,
-             const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
-             const int &timeout = 30000);
+    void get(
+            const QNetworkRequest &request,
+            const std::function< void(const QByteArray &data) > &onFinished,
+            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const int &timeout = 30 * 1000
+        );
 
-    bool post(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout);
+    bool deleteResource(const QNetworkRequest &request, QByteArray &target, const int &timeout = 30 * 1000);
 
-    void post(const QNetworkRequest &request,
-              const QByteArray &appendData,
-              const std::function< void(const QByteArray &data) > &onFinished,
-              const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
-              const int &timeout = 30000);
+    void deleteResource(
+            const QNetworkRequest &request,
+            const std::function< void(const QByteArray &data) > &onFinished,
+            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const int &timeout = 30 * 1000
+        );
+
+    bool post(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout = 30 * 1000);
+
+    void post(
+            const QNetworkRequest &request,
+            const QByteArray &appendData,
+            const std::function< void(const QByteArray &data) > &onFinished,
+            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const int &timeout = 30 * 1000
+        );
 
 
-    static QPair< bool, QByteArray > get(const QString &url, const int &timeout = 30000);
+    static QPair< bool, QByteArray > get(const QString &url, const int &timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > get(const QNetworkRequest &request, const int &timeout = 30000);
+    static QPair< bool, QByteArray > get(const QNetworkRequest &request, const int &timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > post(const QString &url, const QByteArray &appendData, const int &timeout = 30000);
+    static QPair< bool, QByteArray > deleteResource(const QString &url, const int &timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > post(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout = 30000);
+    static QPair< bool, QByteArray > deleteResource(const QNetworkRequest &request, const int &timeout = 30 * 1000);
+
+    static QPair< bool, QByteArray > post(const QString &url, const QByteArray &appendData, const int &timeout = 30 * 1000);
+
+    static QPair< bool, QByteArray > post(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout = 30 * 1000);
 
 private:
-    void handle(QNetworkReply *reply, const int &timeout,
-                const std::function< void(const QByteArray &data) > &onFinished,
-                const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
-                const std::function< void() > &onTimeout);
+    void handle(
+            QNetworkReply *reply, const int &timeout,
+            const std::function< void(const QByteArray &data) > &onFinished,
+            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const std::function< void() > &onTimeout
+        );
 
 private:
     QNetworkAccessManager manage_;

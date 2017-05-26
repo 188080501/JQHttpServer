@@ -32,12 +32,12 @@ QNetworkAddressEntry JQNet::getNetworkAddressEntry()
 
 QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWithNetworkInterface(const bool &ridVm)
 {
-    for (const auto &interface: QNetworkInterface::allInterfaces())
+    for ( const auto &interface: QNetworkInterface::allInterfaces() )
     {
-        if ( interface.flags() != (QNetworkInterface::IsUp
-                                 | QNetworkInterface::IsRunning
-                                 | QNetworkInterface::CanBroadcast
-                                 | QNetworkInterface::CanMulticast ) ) { continue; }
+        if ( interface.flags() != ( QNetworkInterface::IsUp
+                                  | QNetworkInterface::IsRunning
+                                  | QNetworkInterface::CanBroadcast
+                                  | QNetworkInterface::CanMulticast ) ) { continue; }
 
         if ( ridVm && interface.humanReadableName().startsWith( "vm" ) ) { continue; }
 
@@ -56,7 +56,7 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
 QString JQNet::getHostName()
 {
 #ifdef Q_OS_MAC
-    return QHostInfo::localHostName().replace(".local", "");
+    return QHostInfo::localHostName().replace( ".local", "" );
 #endif
     return QHostInfo::localHostName();
 }
@@ -73,29 +73,31 @@ bool HTTP::get(const QNetworkRequest &request, QByteArray &target, const int &ti
     this->handle(
         reply,
         timeout,
-        [&](const QByteArray &data)
+        [ & ](const QByteArray &data)
         {
             target = data;
-            eventLoop.exit(1);
+            eventLoop.exit( 1 );
         },
-        [&](const QNetworkReply::NetworkError &)
+        [ & ](const QNetworkReply::NetworkError &)
         {
-            eventLoop.exit(0);
+            eventLoop.exit( 0 );
         },
-        [&]()
+        [ & ]()
         {
             failFlag = true;
-            eventLoop.exit(0);
+            eventLoop.exit( 0 );
         }
     );
 
     return eventLoop.exec() && !failFlag;
 }
 
-void HTTP::get(const QNetworkRequest &request,
-               const std::function<void (const QByteArray &)> &onFinished,
-               const std::function<void (const QNetworkReply::NetworkError &)> &onError,
-               const int &timeout)
+void HTTP::get(
+        const QNetworkRequest &request,
+        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const int &timeout
+    )
 {
     auto reply = manage_.get( request );
 
@@ -106,7 +108,58 @@ void HTTP::get(const QNetworkRequest &request,
         onError,
         [ onError ]()
         {
-            onError(QNetworkReply::TimeoutError);
+            onError( QNetworkReply::TimeoutError );
+        }
+    );
+}
+
+bool HTTP::deleteResource(const QNetworkRequest &request, QByteArray &target, const int &timeout)
+{
+    target.clear();
+
+    QEventLoop eventLoop;
+    auto reply = manage_.deleteResource( request );
+    bool failFlag = false;
+
+    this->handle(
+        reply,
+        timeout,
+        [ & ](const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( 1 );
+        },
+        [ & ](const QNetworkReply::NetworkError &)
+        {
+            eventLoop.exit( 0 );
+        },
+        [ & ]()
+        {
+            failFlag = true;
+            eventLoop.exit( 0 );
+        }
+    );
+
+    return eventLoop.exec() && !failFlag;
+}
+
+void HTTP::deleteResource(
+        const QNetworkRequest &request,
+        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const int &timeout
+    )
+{
+    auto reply = manage_.deleteResource( request );
+
+    this->handle(
+        reply,
+        timeout,
+        onFinished,
+        onError,
+        [ onError ]()
+        {
+            onError( QNetworkReply::TimeoutError );
         }
     );
 }
@@ -141,11 +194,13 @@ bool HTTP::post(const QNetworkRequest &request, const QByteArray &appendData, QB
     return eventLoop.exec() && !failFlag;
 }
 
-void HTTP::post(const QNetworkRequest &request,
-                const QByteArray &appendData,
-                const std::function<void (const QByteArray &)> &onFinished,
-                const std::function<void (const QNetworkReply::NetworkError &)> &onError,
-                const int &timeout)
+void HTTP::post(
+        const QNetworkRequest &request,
+        const QByteArray &appendData,
+        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const int &timeout
+    )
 {
     auto reply = manage_.post( request, appendData );
 
@@ -181,6 +236,26 @@ QPair< bool, QByteArray > HTTP::get(const QNetworkRequest &request, const int &t
     return { flag, buf };
 }
 
+QPair< bool, QByteArray > HTTP::deleteResource(const QString &url, const int &timeout)
+{
+    QNetworkRequest networkRequest( ( QUrl( url ) ) );
+    QByteArray buf;
+
+    const auto &&flag = HTTP().deleteResource( networkRequest, buf, timeout );
+
+    return { flag, buf };
+}
+
+QPair< bool, QByteArray > HTTP::deleteResource(const QNetworkRequest &request, const int &timeout)
+{
+    QByteArray buf;
+    HTTP http;
+
+    const auto &&flag = http.deleteResource( request, buf, timeout );
+
+    return { flag, buf };
+}
+
 QPair< bool, QByteArray > HTTP::post(const QString &url, const QByteArray &appendData, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
@@ -203,33 +278,47 @@ QPair< bool, QByteArray > HTTP::post(const QNetworkRequest &request, const QByte
     return { flag, buf };
 }
 
-void HTTP::handle(QNetworkReply *reply, const int &timeout,
-                  const std::function<void (const QByteArray &)> &onFinished,
-                  const std::function<void (const QNetworkReply::NetworkError &)> &onError,
-                  const std::function<void ()> &onTimeout)
+void HTTP::handle(
+        QNetworkReply *reply, const int &timeout,
+        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const std::function<void ()> &onTimeout
+    )
 {
+    QSharedPointer< bool > isCalled( new bool( false ) );
+
     QTimer *timer = nullptr;
     if ( timeout )
     {
         timer = new QTimer;
         timer->setSingleShot(true);
 
-        QObject::connect( timer, &QTimer::timeout, [ timer, onTimeout ]()
+        QObject::connect( timer, &QTimer::timeout, [ timer, onTimeout, isCalled ]()
         {
+//            if ( *isCalled ) { return; }
+//            *isCalled = true;
+
             onTimeout();
             timer->deleteLater();
         } );
         timer->start( timeout );
     }
 
-    QObject::connect( reply, &QNetworkReply::finished, [ reply, timer, onFinished ]()
+    QObject::connect( reply, &QNetworkReply::finished, [ reply, timer, onFinished, isCalled ]()
     {
+//        if ( *isCalled ) { return; }
+//        *isCalled = true;
+
         if ( timer )
         {
             timer->deleteLater();
         }
 
-        onFinished( reply->readAll() );
+        const auto &&acceptedData = reply->readAll();
+
+//        qDebug() << acceptedData;
+
+        onFinished( acceptedData );
     } );
 
 #ifndef QT_NO_SSL
@@ -243,8 +332,11 @@ void HTTP::handle(QNetworkReply *reply, const int &timeout,
     }
 #endif
 
-    QObject::connect( reply, ( void( QNetworkReply::* )( QNetworkReply::NetworkError ) )&QNetworkReply::error, [ reply, timer, onError ](const QNetworkReply::NetworkError &code)
+    QObject::connect( reply, ( void( QNetworkReply::* )( QNetworkReply::NetworkError ) )&QNetworkReply::error, [ reply, timer, onError, isCalled ](const QNetworkReply::NetworkError &code)
     {
+//        if ( *isCalled ) { return; }
+//        *isCalled = true;
+
         if ( timer )
         {
             timer->deleteLater();
