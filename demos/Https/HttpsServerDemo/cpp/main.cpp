@@ -28,5 +28,18 @@ int main(int argc, char *argv[])
 
     qDebug() << "listen:" << sslServerManage.listen( QHostAddress::Any, 24684, ":/server.crt", ":/server.key" );
 
+    // 这是我在一个实际项目中用的配置（用认证的证书，访问时带绿色小锁），其中涉及到隐私的细节已经被替换，但是任然能够看出整体用法
+//    qDebug() << "listen:" << sslServerManage.listen(
+//                    QHostAddress::Any,
+//                    24684,
+//                    "xxx/__xxx_com.crt",
+//                    "xxx/__xxx_com.key",
+//                    {
+//                        { "xxx/__xxx_com.ca-bundle", true },
+//                        { "xxx/COMODO RSA Domain Validation Secure Server CA.cer", false },
+//                        { "xxx/COMODO RSA Certification Authority.cer", false }
+//                    }
+//                );
+
     return a.exec();
 }

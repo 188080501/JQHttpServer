@@ -41,6 +41,7 @@
 #   include <QSslSocket>
 #   include <QSslKey>
 #   include <QSslCertificate>
+#   include <QSslConfiguration>
 #endif
 
 using namespace JQHttpServer;
@@ -672,7 +673,8 @@ bool SslServerManage::listen(
         const QHostAddress &address,
         const quint16 &port,
         const QString &crtFilePath,
-        const QString &keyFilePath
+        const QString &keyFilePath,
+        const QList< QPair< QString, bool > > &caFileList
     )
 {
     listenAddress_ = address;
@@ -692,8 +694,32 @@ bool SslServerManage::listen(
         return false;
     }
 
-    certificate_.reset( new QSslCertificate( fileForCrt.readAll() ) );
-    sslKey_.reset( new QSslKey( fileForKey.readAll(), QSsl::Rsa ) );
+    QSslCertificate sslCertificate( fileForCrt.readAll(), QSsl::Pem );
+    QSslKey sslKey( fileForKey.readAll(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey );
+
+    QList< QSslCertificate > caCertificates;
+    for ( const auto &caFile: caFileList )
+    {
+        QFile fileForCa( caFile.first );
+        if ( !fileForCa.open( QIODevice::ReadOnly ) )
+        {
+            qDebug() << "SslServerManage::listen: error: can not open file:" << caFile.first;
+            return false;
+        }
+
+        caCertificates.push_back( QSslCertificate( fileForCa.readAll(), ( caFile.second ) ? ( QSsl::Pem ) : ( QSsl::Der ) ) );
+    }
+
+    sslConfiguration_.reset( new QSslConfiguration );
+    sslConfiguration_->setPeerVerifyMode( QSslSocket::VerifyNone );
+    sslConfiguration_->setLocalCertificate( sslCertificate );
+    sslConfiguration_->setPrivateKey( sslKey );
+    sslConfiguration_->setProtocol( QSsl::TlsV1_2 );
+    sslConfiguration_->setCaCertificates( caCertificates );
+
+    qDebug() << "sslCertificate:" << sslCertificate;
+    qDebug() << "sslKey:" << sslKey;
+    qDebug() << "caCertificates:" << caCertificates;
 
     return this->begin();
 }
@@ -715,13 +741,25 @@ bool SslServerManage::onStart()
     {
         auto sslSocket = new QSslSocket;
 
-        sslSocket->setLocalCertificate( *certificate_ );
-        sslSocket->setPrivateKey( *sslKey_ );
+        sslSocket->setSslConfiguration( *sslConfiguration_ );
 
+//        QObject::connect( sslSocket, &QSslSocket::modeChanged, [ this, sslSocket ](QSslSocket::SslMode mode)
+//        {
+//            qDebug() << "modeChanged" << mode;
+//        } );
         QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
         {
+//            qDebug() << "encrypted";
             this->newSession( new Session( sslSocket ) );
         } );
+//        QObject::connect( sslSocket, (void(QSslSocket::*)(QAbstractSocket::SocketError))&QSslSocket::error, [ sslSocket ](QAbstractSocket::SocketError e)
+//        {
+//            qDebug() << e << sslSocket->errorString();
+//        } );
+//        QObject::connect( sslSocket, (void(QSslSocket::*)(const QList<QSslError> &))&QSslSocket::sslErrors, [ sslSocket ](const QList<QSslError> &e)
+//        {
+//            qDebug() << e;
+//        } );
 
         sslSocket->setSocketDescriptor( socketDescriptor );
         sslSocket->startServerEncryption();

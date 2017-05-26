@@ -48,6 +48,7 @@ class QTcpServer;
 class QLocalServer;
 class QSslCertificate;
 class QSslKey;
+class QSslConfiguration;
 
 namespace JQHttpServer
 {
@@ -204,7 +205,8 @@ public:
             const QHostAddress &address,
             const quint16 &port,
             const QString &crtFilePath,
-            const QString &keyFilePath
+            const QString &keyFilePath,
+            const QList< QPair< QString, bool > > &caFileList = { } // [ { filePath, isPem } ]
         );
 
 private:
@@ -220,8 +222,7 @@ private:
     QHostAddress listenAddress_;
     quint16 listenPort_;
 
-    QSharedPointer< QSslCertificate > certificate_;
-    QSharedPointer< QSslKey > sslKey_;
+    QSharedPointer< QSslConfiguration > sslConfiguration_;
 };
 #endif
 
