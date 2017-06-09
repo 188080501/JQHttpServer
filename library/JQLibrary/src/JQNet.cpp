@@ -216,6 +216,58 @@ void HTTP::post(
     );
 }
 
+bool HTTP::put(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout)
+{
+    target.clear();
+
+    QEventLoop eventLoop;
+    auto reply = manage_.put( request, appendData );
+    bool failFlag = false;
+
+    this->handle(
+        reply,
+        timeout,
+        [ &target, &eventLoop ](const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( true );
+        },
+        [ &eventLoop ](const QNetworkReply::NetworkError &)
+        {
+            eventLoop.exit( false );
+        },
+        [ &failFlag, &eventLoop ]()
+        {
+            failFlag = true;
+            eventLoop.exit( false );
+        }
+    );
+
+    return eventLoop.exec() && !failFlag;
+}
+
+void HTTP::put(
+        const QNetworkRequest &request,
+        const QByteArray &appendData,
+        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const int &timeout
+    )
+{
+    auto reply = manage_.put( request, appendData );
+
+    this->handle(
+        reply,
+        timeout,
+        onFinished,
+        onError,
+        [ onError ]()
+        {
+            onError( QNetworkReply::TimeoutError );
+        }
+    );
+}
+
 QPair< bool, QByteArray > HTTP::get(const QString &url, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
@@ -278,6 +330,28 @@ QPair< bool, QByteArray > HTTP::post(const QNetworkRequest &request, const QByte
     return { flag, buf };
 }
 
+QPair< bool, QByteArray > HTTP::put(const QString &url, const QByteArray &appendData, const int &timeout)
+{
+    QNetworkRequest networkRequest( ( QUrl( url ) ) );
+    QByteArray buf;
+
+    networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
+
+    const auto &&flag = HTTP().put( networkRequest, appendData, buf, timeout );
+
+    return { flag, buf };
+}
+
+QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout)
+{
+    QByteArray buf;
+    HTTP http;
+
+    const auto &&flag = http.put( request, appendData, buf, timeout );
+
+    return { flag, buf };
+}
+
 void HTTP::handle(
         QNetworkReply *reply, const int &timeout,
         const std::function<void (const QByteArray &)> &onFinished,
@@ -295,8 +369,8 @@ void HTTP::handle(
 
         QObject::connect( timer, &QTimer::timeout, [ timer, onTimeout, isCalled ]()
         {
-//            if ( *isCalled ) { return; }
-//            *isCalled = true;
+            if ( *isCalled ) { return; }
+            *isCalled = true;
 
             onTimeout();
             timer->deleteLater();
@@ -306,8 +380,8 @@ void HTTP::handle(
 
     QObject::connect( reply, &QNetworkReply::finished, [ reply, timer, onFinished, isCalled ]()
     {
-//        if ( *isCalled ) { return; }
-//        *isCalled = true;
+        if ( *isCalled ) { return; }
+        *isCalled = true;
 
         if ( timer )
         {
@@ -334,8 +408,8 @@ void HTTP::handle(
 
     QObject::connect( reply, ( void( QNetworkReply::* )( QNetworkReply::NetworkError ) )&QNetworkReply::error, [ reply, timer, onError, isCalled ](const QNetworkReply::NetworkError &code)
     {
-//        if ( *isCalled ) { return; }
-//        *isCalled = true;
+        if ( *isCalled ) { return; }
+        *isCalled = true;
 
         if ( timer )
         {
