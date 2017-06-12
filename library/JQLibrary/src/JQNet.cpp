@@ -78,8 +78,9 @@ bool HTTP::get(const QNetworkRequest &request, QByteArray &target, const int &ti
             target = data;
             eventLoop.exit( 1 );
         },
-        [ & ](const QNetworkReply::NetworkError &)
+        [ & ](const QNetworkReply::NetworkError &, const QByteArray &data)
         {
+            target = data;
             eventLoop.exit( 0 );
         },
         [ & ]()
@@ -95,7 +96,7 @@ bool HTTP::get(const QNetworkRequest &request, QByteArray &target, const int &ti
 void HTTP::get(
         const QNetworkRequest &request,
         const std::function<void (const QByteArray &)> &onFinished,
-        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
@@ -108,7 +109,7 @@ void HTTP::get(
         onError,
         [ onError ]()
         {
-            onError( QNetworkReply::TimeoutError );
+            onError( QNetworkReply::TimeoutError, { } );
         }
     );
 }
@@ -129,8 +130,9 @@ bool HTTP::deleteResource(const QNetworkRequest &request, QByteArray &target, co
             target = data;
             eventLoop.exit( 1 );
         },
-        [ & ](const QNetworkReply::NetworkError &)
+        [ & ](const QNetworkReply::NetworkError &, const QByteArray &data)
         {
+            target = data;
             eventLoop.exit( 0 );
         },
         [ & ]()
@@ -146,7 +148,7 @@ bool HTTP::deleteResource(const QNetworkRequest &request, QByteArray &target, co
 void HTTP::deleteResource(
         const QNetworkRequest &request,
         const std::function<void (const QByteArray &)> &onFinished,
-        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
@@ -159,7 +161,7 @@ void HTTP::deleteResource(
         onError,
         [ onError ]()
         {
-            onError( QNetworkReply::TimeoutError );
+            onError( QNetworkReply::TimeoutError, { } );
         }
     );
 }
@@ -180,8 +182,9 @@ bool HTTP::post(const QNetworkRequest &request, const QByteArray &appendData, QB
             target = data;
             eventLoop.exit( true );
         },
-        [ &eventLoop ](const QNetworkReply::NetworkError &)
+        [ &target, &eventLoop ](const QNetworkReply::NetworkError &, const QByteArray &data)
         {
+            target = data;
             eventLoop.exit( false );
         },
         [ &failFlag, &eventLoop ]()
@@ -198,7 +201,7 @@ void HTTP::post(
         const QNetworkRequest &request,
         const QByteArray &appendData,
         const std::function<void (const QByteArray &)> &onFinished,
-        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
@@ -211,7 +214,7 @@ void HTTP::post(
         onError,
         [ onError ]()
         {
-            onError( QNetworkReply::TimeoutError );
+            onError( QNetworkReply::TimeoutError, { } );
         }
     );
 }
@@ -232,8 +235,9 @@ bool HTTP::put(const QNetworkRequest &request, const QByteArray &appendData, QBy
             target = data;
             eventLoop.exit( true );
         },
-        [ &eventLoop ](const QNetworkReply::NetworkError &)
+        [ &target, &eventLoop ](const QNetworkReply::NetworkError &, const QByteArray &data)
         {
+            target = data;
             eventLoop.exit( false );
         },
         [ &failFlag, &eventLoop ]()
@@ -250,7 +254,7 @@ void HTTP::put(
         const QNetworkRequest &request,
         const QByteArray &appendData,
         const std::function<void (const QByteArray &)> &onFinished,
-        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
@@ -263,7 +267,7 @@ void HTTP::put(
         onError,
         [ onError ]()
         {
-            onError( QNetworkReply::TimeoutError );
+            onError( QNetworkReply::TimeoutError, { } );
         }
     );
 }
@@ -355,7 +359,7 @@ QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteA
 void HTTP::handle(
         QNetworkReply *reply, const int &timeout,
         const std::function<void (const QByteArray &)> &onFinished,
-        const std::function<void (const QNetworkReply::NetworkError &)> &onError,
+        const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &data)> &onError,
         const std::function<void ()> &onTimeout
     )
 {
@@ -415,6 +419,10 @@ void HTTP::handle(
         {
             timer->deleteLater();
         }
-        onError( code );
+        const auto &&acceptedData = reply->readAll();
+
+//        qDebug() << acceptedData;
+
+        onError( code, acceptedData );
     } );
 }

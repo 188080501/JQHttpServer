@@ -58,7 +58,7 @@ public:
     void get(
             const QNetworkRequest &request,
             const std::function< void(const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -67,7 +67,7 @@ public:
     void deleteResource(
             const QNetworkRequest &request,
             const std::function< void(const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -77,7 +77,7 @@ public:
             const QNetworkRequest &request,
             const QByteArray &appendData,
             const std::function< void(const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -87,7 +87,7 @@ public:
             const QNetworkRequest &request,
             const QByteArray &appendData,
             const std::function< void(const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -112,7 +112,7 @@ private:
     void handle(
             QNetworkReply *reply, const int &timeout,
             const std::function< void(const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code) > &onError,
+            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const std::function< void() > &onTimeout
         );
 
