@@ -91,6 +91,16 @@ public:
             const int &timeout = 30 * 1000
         );
 
+    bool patch(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout = 30 * 1000);
+
+    void patch(
+            const QNetworkRequest &request,
+            const QByteArray &appendData,
+            const std::function< void(const QByteArray &data) > &onFinished,
+            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const int &timeout = 30 * 1000
+        );
+
 
     static QPair< bool, QByteArray > get(const QString &url, const int &timeout = 30 * 1000);
 
@@ -107,6 +117,10 @@ public:
     static QPair< bool, QByteArray > put(const QString &url, const QByteArray &appendData, const int &timeout = 30 * 1000);
 
     static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout = 30 * 1000);
+
+    static QPair< bool, QByteArray > patch(const QString &url, const QByteArray &appendData, const int &timeout = 30 * 1000);
+
+    static QPair< bool, QByteArray > patch(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout = 30 * 1000);
 
 private:
     void handle(

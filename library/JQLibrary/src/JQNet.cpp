@@ -272,6 +272,59 @@ void HTTP::put(
     );
 }
 
+bool HTTP::patch(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout)
+{
+    target.clear();
+
+    QEventLoop eventLoop;
+    auto reply = manage_.sendCustomRequest( request, "PATCH", appendData );
+    bool failFlag = false;
+
+    this->handle(
+        reply,
+        timeout,
+        [ &target, &eventLoop ](const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( true );
+        },
+        [ &target, &eventLoop ](const QNetworkReply::NetworkError &, const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( false );
+        },
+        [ &failFlag, &eventLoop ]()
+        {
+            failFlag = true;
+            eventLoop.exit( false );
+        }
+    );
+
+    return eventLoop.exec() && !failFlag;
+}
+
+void HTTP::patch(
+        const QNetworkRequest &request,
+        const QByteArray &appendData,
+        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
+        const int &timeout
+    )
+{
+    auto reply = manage_.sendCustomRequest( request, "PATCH", appendData );
+
+    this->handle(
+        reply,
+        timeout,
+        onFinished,
+        onError,
+        [ onError ]()
+        {
+            onError( QNetworkReply::TimeoutError, { } );
+        }
+    );
+}
+
 QPair< bool, QByteArray > HTTP::get(const QString &url, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
@@ -352,6 +405,28 @@ QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteA
     HTTP http;
 
     const auto &&flag = http.put( request, appendData, buf, timeout );
+
+    return { flag, buf };
+}
+
+QPair< bool, QByteArray > HTTP::patch(const QString &url, const QByteArray &appendData, const int &timeout)
+{
+    QNetworkRequest networkRequest( ( QUrl( url ) ) );
+    QByteArray buf;
+
+    networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
+
+    const auto &&flag = HTTP().patch( networkRequest, appendData, buf, timeout );
+
+    return { flag, buf };
+}
+
+QPair< bool, QByteArray > HTTP::patch(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout)
+{
+    QByteArray buf;
+    HTTP http;
+
+    const auto &&flag = http.patch( request, appendData, buf, timeout );
 
     return { flag, buf };
 }
