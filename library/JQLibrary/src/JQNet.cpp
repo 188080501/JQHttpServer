@@ -34,10 +34,10 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
 {
     for ( const auto &interface: QNetworkInterface::allInterfaces() )
     {
-        if ( interface.flags() != ( QNetworkInterface::IsUp
-                                  | QNetworkInterface::IsRunning
-                                  | QNetworkInterface::CanBroadcast
-                                  | QNetworkInterface::CanMulticast ) ) { continue; }
+        if ( interface.flags() != ( QNetworkInterface::IsUp |
+                                    QNetworkInterface::IsRunning |
+                                    QNetworkInterface::CanBroadcast |
+                                    QNetworkInterface::CanMulticast ) ) { continue; }
 
         if ( ridVm && interface.humanReadableName().startsWith( "vm" ) ) { continue; }
 
@@ -55,10 +55,11 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
 
 QString JQNet::getHostName()
 {
-#ifdef Q_OS_MAC
+#if ( defined Q_OS_MAC )
     return QHostInfo::localHostName().replace( ".local", "" );
-#endif
+#else
     return QHostInfo::localHostName();
+#endif
 }
 
 // HTTP
