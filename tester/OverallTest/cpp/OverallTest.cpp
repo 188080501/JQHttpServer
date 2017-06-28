@@ -3,6 +3,7 @@
 // Qt lib import
 #include <QtTest>
 #include <QSemaphore>
+#include <QTcpSocket>
 #include <QtConcurrent>
 
 // JQLibrary import

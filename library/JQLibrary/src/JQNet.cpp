@@ -273,6 +273,7 @@ void HTTP::put(
     );
 }
 
+#ifndef Q_OS_LINUX
 bool HTTP::patch(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout)
 {
     target.clear();
@@ -325,6 +326,7 @@ void HTTP::patch(
         }
     );
 }
+#endif
 
 QPair< bool, QByteArray > HTTP::get(const QString &url, const int &timeout)
 {
@@ -410,6 +412,7 @@ QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteA
     return { flag, buf };
 }
 
+#ifndef Q_OS_LINUX
 QPair< bool, QByteArray > HTTP::patch(const QString &url, const QByteArray &appendData, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
@@ -431,6 +434,7 @@ QPair< bool, QByteArray > HTTP::patch(const QNetworkRequest &request, const QByt
 
     return { flag, buf };
 }
+#endif
 
 void HTTP::handle(
         QNetworkReply *reply, const int &timeout,

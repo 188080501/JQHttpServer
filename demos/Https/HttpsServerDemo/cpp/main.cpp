@@ -9,6 +9,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
+#ifndef QT_NO_SSL
     JQHttpServer::SslServerManage sslServerManage( 2 ); // 设置最大处理线程数，默认2个
 
     sslServerManage.setHttpAcceptedCallback( []( const QPointer< JQHttpServer::Session > &session )
@@ -40,6 +41,8 @@ int main(int argc, char *argv[])
 //                        { "xxx/COMODO RSA Certification Authority.cer", false }
 //                    }
 //                );
-
     return a.exec();
+#else
+    return 0;
+#endif
 }
