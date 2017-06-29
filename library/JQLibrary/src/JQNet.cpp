@@ -63,7 +63,10 @@ QString JQNet::getHostName()
 }
 
 // HTTP
-bool HTTP::get(const QNetworkRequest &request, QByteArray &target, const int &timeout)
+bool HTTP::get(
+        const QNetworkRequest &request,
+        QByteArray &target, const int &timeout
+    )
 {
     target.clear();
 
@@ -115,7 +118,11 @@ void HTTP::get(
     );
 }
 
-bool HTTP::deleteResource(const QNetworkRequest &request, QByteArray &target, const int &timeout)
+bool HTTP::deleteResource(
+        const QNetworkRequest &request,
+        QByteArray &target,
+        const int &timeout
+    )
 {
     target.clear();
 
@@ -167,7 +174,12 @@ void HTTP::deleteResource(
     );
 }
 
-bool HTTP::post(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout)
+bool HTTP::post(
+        const QNetworkRequest &request,
+        const QByteArray &appendData,
+        QByteArray &target,
+        const int &timeout
+    )
 {
     target.clear();
 
@@ -220,7 +232,12 @@ void HTTP::post(
     );
 }
 
-bool HTTP::put(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout)
+bool HTTP::put(
+        const QNetworkRequest &request,
+        const QByteArray &appendData,
+        QByteArray &target,
+        const int &timeout
+    )
 {
     target.clear();
 
@@ -238,6 +255,38 @@ bool HTTP::put(const QNetworkRequest &request, const QByteArray &appendData, QBy
         },
         [ &target, &eventLoop ](const QNetworkReply::NetworkError &, const QByteArray &data)
         {
+            target = data;
+            eventLoop.exit( false );
+        },
+        [ &failFlag, &eventLoop ]()
+        {
+            failFlag = true;
+            eventLoop.exit( false );
+        }
+    );
+
+    return eventLoop.exec() && !failFlag;
+}
+
+bool HTTP::put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, QByteArray &target, const int &timeout)
+{
+    target.clear();
+
+    QEventLoop eventLoop;
+    auto reply = manage_.put( request, multiPart.data() );
+    bool failFlag = false;
+
+    this->handle(
+        reply,
+        timeout,
+        [ &target, &eventLoop ](const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( true );
+        },
+        [ &target, &eventLoop ](const QNetworkReply::NetworkError &e, const QByteArray &data)
+        {
+            qDebug() << e;
             target = data;
             eventLoop.exit( false );
         },
@@ -274,7 +323,12 @@ void HTTP::put(
 }
 
 #ifndef Q_OS_LINUX
-bool HTTP::patch(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout)
+bool HTTP::patch(
+        const QNetworkRequest &request,
+        const QByteArray &appendData,
+        QByteArray &target,
+        const int &timeout
+    )
 {
     target.clear();
 
@@ -408,6 +462,16 @@ QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteA
     HTTP http;
 
     const auto &&flag = http.put( request, appendData, buf, timeout );
+
+    return { flag, buf };
+}
+
+QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int &timeout)
+{
+    QByteArray buf;
+    HTTP http;
+
+    const auto &&flag = http.put( request, multiPart, buf, timeout );
 
     return { flag, buf };
 }

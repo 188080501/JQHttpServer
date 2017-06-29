@@ -15,8 +15,8 @@
     http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 */
 
-#ifndef __JQNet_h__
-#define __JQNet_h__
+#ifndef JQNET_H_
+#define JQNET_H_
 
 #ifndef QT_NETWORK_LIB
 #   error("Please add network in pro file")
@@ -26,8 +26,10 @@
 #include <functional>
 
 // Qt lib import
+#include <QSharedPointer>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QHttpMultiPart>
 #include <QNetworkInterface>
 #include <QNetworkAddressEntry>
 
@@ -53,7 +55,11 @@ public:
     inline QNetworkAccessManager &manage() { return manage_; }
 
 
-    bool get(const QNetworkRequest &request, QByteArray &target, const int &timeout = 30 * 1000);
+    bool get(
+            const QNetworkRequest &request,
+            QByteArray &target,
+            const int &timeout = 30 * 1000
+        );
 
     void get(
             const QNetworkRequest &request,
@@ -62,7 +68,11 @@ public:
             const int &timeout = 30 * 1000
         );
 
-    bool deleteResource(const QNetworkRequest &request, QByteArray &target, const int &timeout = 30 * 1000);
+    bool deleteResource(
+            const QNetworkRequest &request,
+            QByteArray &target,
+            const int &timeout = 30 * 1000
+        );
 
     void deleteResource(
             const QNetworkRequest &request,
@@ -71,7 +81,12 @@ public:
             const int &timeout = 30 * 1000
         );
 
-    bool post(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout = 30 * 1000);
+    bool post(
+            const QNetworkRequest &request,
+            const QByteArray &appendData,
+            QByteArray &target,
+            const int &timeout = 30 * 1000
+        );
 
     void post(
             const QNetworkRequest &request,
@@ -81,7 +96,19 @@ public:
             const int &timeout = 30 * 1000
         );
 
-    bool put(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout = 30 * 1000);
+    bool put(
+            const QNetworkRequest &request,
+            const QByteArray &appendData,
+            QByteArray &target,
+            const int &timeout = 30 * 1000
+        );
+
+    bool put(
+            const QNetworkRequest &request,
+            const QSharedPointer< QHttpMultiPart > &multiPart,
+            QByteArray &target,
+            const int &timeout = 30 * 1000
+        );
 
     void put(
             const QNetworkRequest &request,
@@ -92,7 +119,12 @@ public:
         );
 
 #ifndef Q_OS_LINUX
-    bool patch(const QNetworkRequest &request, const QByteArray &appendData, QByteArray &target, const int &timeout = 30 * 1000);
+    bool patch(
+            const QNetworkRequest &request,
+            const QByteArray &appendData,
+            QByteArray &target,
+            const int &timeout = 30 * 1000
+        );
 
     void patch(
             const QNetworkRequest &request,
@@ -120,6 +152,8 @@ public:
 
     static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout = 30 * 1000);
 
+    static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int &timeout = 30 * 1000);
+
 #ifndef Q_OS_LINUX
     static QPair< bool, QByteArray > patch(const QString &url, const QByteArray &appendData, const int &timeout = 30 * 1000);
 
@@ -140,4 +174,4 @@ private:
 
 }
 
-#endif//__JQNet_h__
+#endif//JQNET_H_
