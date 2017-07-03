@@ -610,7 +610,9 @@ bool TcpServerManage::onStart()
 
     QObject::connect( tcpServer_.data(), &QTcpServer::newConnection, [ this ]()
     {
-        this->newSession( new Session( this->tcpServer_->nextPendingConnection() ) );
+        auto socket = this->tcpServer_->nextPendingConnection();
+
+        this->newSession( new Session( socket ) );
     } );
 
     if ( !tcpServer_->listen( listenAddress_, listenPort_ ) )

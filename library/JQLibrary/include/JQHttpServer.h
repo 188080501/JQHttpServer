@@ -184,8 +184,8 @@ private:
 private:
     QPointer< QTcpServer > tcpServer_;
 
-    QHostAddress listenAddress_;
-    quint16 listenPort_;
+    QHostAddress listenAddress_ = QHostAddress::Any;
+    quint16 listenPort_ = 0;
 };
 
 #ifndef QT_NO_SSL
@@ -219,8 +219,8 @@ private:
 private:
     QPointer< SslServerHelper > tcpServer_;
 
-    QHostAddress listenAddress_;
-    quint16 listenPort_;
+    QHostAddress listenAddress_ = QHostAddress::Any;
+    quint16 listenPort_ = 0;
 
     QSharedPointer< QSslConfiguration > sslConfiguration_;
 };
