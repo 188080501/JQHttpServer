@@ -86,7 +86,6 @@ Session::Session(const QPointer<QIODevice> &tcpSocket):
         }
 
         const auto &&data = this->ioDevice_->readAll();
-
 //        qDebug() << data;
 
         this->buffer_.append( data );
@@ -439,6 +438,12 @@ void Session::inspectionBufferSetup1()
                 }
 
                 headersData_[ key ] = value;
+//                qDebug() << key << value;
+
+                if ( key.toLower() == "content-length" )
+                {
+                    contentLength_ = value.toLongLong();
+                }
             }
         }
     }
@@ -450,8 +455,10 @@ void Session::inspectionBufferSetup1()
 
 void Session::inspectionBufferSetup2()
 {
-    requestRawData_ = buffer_;
+    requestRawData_ += buffer_;
     buffer_.clear();
+
+//    qDebug() << requestRawData_.size() << contentLength_;
 
     if ( !handleAcceptedCallback_ )
     {
@@ -459,6 +466,12 @@ void Session::inspectionBufferSetup2()
         this->deleteLater();
         return;
     }
+
+    if ( ( contentLength_ != -1 ) && ( requestRawData_.size() != contentLength_ ) )
+    {
+        return;
+    }
+
     handleAcceptedCallback_( this );
 }
 
