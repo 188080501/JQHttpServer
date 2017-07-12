@@ -407,10 +407,11 @@ void Session::inspectionBufferSetup1()
             {
                 buffer_.remove( 0, 2 );
 
+//                qDebug() << buffer_;
                 headerAcceptedFinish_ = true;
 
                 if ( ( requestMethodToken_.toUpper() == "GET" ) ||
-                   ( ( requestMethodToken_.toUpper() == "POST" ) && !buffer_.isEmpty() ) )
+                   ( ( requestMethodToken_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) )
                 {
                     this->inspectionBufferSetup2();
                 }
@@ -438,7 +439,6 @@ void Session::inspectionBufferSetup1()
                 }
 
                 headersData_[ key ] = value;
-//                qDebug() << key << value;
 
                 if ( key.toLower() == "content-length" )
                 {
