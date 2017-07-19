@@ -396,7 +396,9 @@ void Session::inspectionBufferSetup1()
                 requestCrlf_ = requestLineDatas.at( 2 );
 
                 if ( ( requestMethodToken_ != "GET" ) &&
-                     ( requestMethodToken_ != "POST" ) )
+                     ( requestMethodToken_ != "OPTIONS" ) &&
+                     ( requestMethodToken_ != "POST" ) &&
+                     ( requestMethodToken_ != "PUT" ) )
                 {
                     qDebug() << "JQHttpServer::Session::inspectionBuffer: error3:" << requestMethodToken_;
                     this->deleteLater();
@@ -411,7 +413,9 @@ void Session::inspectionBufferSetup1()
                 headerAcceptedFinish_ = true;
 
                 if ( ( requestMethodToken_.toUpper() == "GET" ) ||
-                   ( ( requestMethodToken_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) )
+                     ( requestMethodToken_.toUpper() == "OPTIONS" ) ||
+                     ( ( requestMethodToken_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) ||
+                     ( ( requestMethodToken_.toUpper() == "PUT" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) )
                 {
                     this->inspectionBufferSetup2();
                 }
