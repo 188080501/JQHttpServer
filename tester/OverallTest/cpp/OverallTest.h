@@ -1,5 +1,5 @@
-﻿#ifndef __OverallTest_h__
-#define __OverallTest_h__
+﻿#ifndef OVERALLTEST_H_
+#define OVERALLTEST_H_
 
 // Qt lib import
 #include <QObject>
@@ -47,4 +47,4 @@ private:
 #endif
 };
 
-#endif//__OverallTest_h__
+#endif//OVERALLTEST_H_

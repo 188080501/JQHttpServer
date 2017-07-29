@@ -16,28 +16,28 @@ void OverallTest::initTestCase()
 
     httpServerManage_->setHttpAcceptedCallback( [ ]( const QPointer< JQHttpServer::Session > &session )
     {
-        session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
+        session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestBody() ) ) );
     } );
 
-    QCOMPARE( (bool)httpServerManage_->listen( QHostAddress::Any, 24680 ), true );
+    QCOMPARE( httpServerManage_->listen( QHostAddress::Any, 24680 ), true );
 
 #ifndef QT_NO_SSL
     httpsServerManage_.reset( new JQHttpServer::SslServerManage );
 
     httpsServerManage_->setHttpAcceptedCallback( [ ]( const QPointer< JQHttpServer::Session > &session )
     {
-        session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
+        session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestBody() ) ) );
     } );
 
-    QCOMPARE( (bool)httpsServerManage_->listen( QHostAddress::Any, 24681, ":/server.crt", ":/server.key" ), true );
+    QCOMPARE( httpsServerManage_->listen( QHostAddress::Any, 24681, ":/server.crt", ":/server.key" ), true );
 #endif
 }
 
 void OverallTest::cleanupTestCase()
 {
-    httpServerManage_->close();
+    httpServerManage_.clear();
 #ifndef QT_NO_SSL
-    httpsServerManage_->close();
+    httpsServerManage_.clear();
 #endif
 }
 

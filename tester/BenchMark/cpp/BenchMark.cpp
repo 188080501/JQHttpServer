@@ -15,15 +15,15 @@ void BenchMark::initTestCase()
 
     tcpServerManage_->setHttpAcceptedCallback( [ ]( const QPointer< JQHttpServer::Session > &session )
     {
-        session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestRawData() ) ) );
+        session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestBody() ) ) );
     } );
 
-    QCOMPARE( (bool)tcpServerManage_->listen( QHostAddress::Any, 23413 ), true );
+    QCOMPARE( tcpServerManage_->listen( QHostAddress::Any, 23413 ), true );
 }
 
 void BenchMark::cleanupTestCase()
 {
-    tcpServerManage_->close();
+    tcpServerManage_.clear();
 }
 
 void BenchMark::benchMarkForOnce()

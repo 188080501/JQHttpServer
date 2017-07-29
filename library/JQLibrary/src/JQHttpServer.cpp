@@ -500,7 +500,7 @@ void Session::inspectionBufferSetup2()
     requestBody_ += buffer_;
     buffer_.clear();
 
-//    qDebug() << requestRawData_.size() << contentLength_;
+//    qDebug() << requestBody_.size() << contentLength_;
 
     if ( !handleAcceptedCallback_ )
     {

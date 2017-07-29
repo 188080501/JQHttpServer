@@ -1,5 +1,5 @@
-﻿#ifndef __BenchMark_h__
-#define __BenchMark_h__
+﻿#ifndef BENCHMARK_H_
+#define BENCHMARK_H_
 
 // Qt lib import
 #include <QObject>
@@ -33,4 +33,4 @@ private:
     QSharedPointer< JQHttpServer::TcpServerManage > tcpServerManage_;
 };
 
-#endif//__BenchMark_h__
+#endif//BENCHMARK_H_
