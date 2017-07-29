@@ -118,7 +118,7 @@ public:
             const int &timeout = 30 * 1000
         );
 
-#ifndef Q_OS_LINUX
+#if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
     bool patch(
             const QNetworkRequest &request,
             const QByteArray &appendData,
@@ -154,7 +154,7 @@ public:
 
     static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int &timeout = 30 * 1000);
 
-#ifndef Q_OS_LINUX
+#if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
     static QPair< bool, QByteArray > patch(const QString &url, const QByteArray &appendData, const int &timeout = 30 * 1000);
 
     static QPair< bool, QByteArray > patch(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout = 30 * 1000);

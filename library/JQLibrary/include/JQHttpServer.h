@@ -15,8 +15,8 @@
     http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 */
 
-#ifndef __JQHttpServer_h__
-#define __JQHttpServer_h__
+#ifndef JQHTTPSERVER_H_
+#define JQHTTPSERVER_H_
 
 #ifndef QT_NETWORK_LIB
 #   error("Please add network in pro file")
@@ -63,18 +63,21 @@ public:
 
     ~Session();
 
-    inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback)
-    { handleAcceptedCallback_ = callback; }
+    inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
-    inline QString requestMethodToken() const { return requestMethodToken_; }
+    inline QString requestMethod() const { return requestMethod_; }
 
     inline QString requestUrl() const { return requestUrl_; }
 
     inline QString requestCrlf() const { return requestCrlf_; }
 
-    inline QMap< QString, QString > headersData() const { return headersData_; }
+    inline QMap< QString, QString > requestHeader() const { return requestHeader_; }
 
-    inline QByteArray requestRawData() const { return requestRawData_; }
+    inline QByteArray requestBody() const { return requestBody_; }
+
+    QString requestUrlPath() const;
+
+    QMap< QString, QString > requestUrlQuery() const;
 
 public slots:
     void replyText(const QString &replyData);
@@ -99,16 +102,16 @@ private:
 
     QByteArray buffer_;
 
-    QString requestMethodToken_;
+    QString requestMethod_;
     QString requestUrl_;
     QString requestCrlf_;
 
-    QMap< QString, QString > headersData_;
+    QMap< QString, QString > requestHeader_;
     bool headerAcceptedFinish_ = false;
     qint64 contentLength_ = -1;
     bool alreadyReply_ = false;
 
-    QByteArray requestRawData_;
+    QByteArray requestBody_;
 
     qint64 waitWrittenByteCount_ = 0;
     QSharedPointer< QIODevice > ioDeviceForReply_;
@@ -124,12 +127,15 @@ public:
 
     virtual ~AbstractManage();
 
-    inline void setHttpAcceptedCallback(const std::function< void(const QPointer< Session > &session) > &httpAcceptedCallback)
-    { httpAcceptedCallback_ = httpAcceptedCallback; }
+    inline void setHttpAcceptedCallback(const std::function< void(const QPointer< Session > &session) > &httpAcceptedCallback) { httpAcceptedCallback_ = httpAcceptedCallback; }
+
+    inline QSharedPointer< QThreadPool > handleThreadPool() { return handleThreadPool_; }
+
+    inline QSharedPointer< QThreadPool > serverThreadPool() { return serverThreadPool_; }
 
     virtual bool isRunning() = 0;
 
-public slots:
+protected Q_SLOTS:
     bool begin();
 
     void close();
@@ -254,4 +260,4 @@ private:
 
 }
 
-#endif//__JQHttpServer_h__
+#endif//JQHTTPSERVER_H_

@@ -137,6 +137,44 @@ Session::~Session()
     }
 }
 
+QString Session::requestUrlPath() const
+{
+    const auto indexForQueryStart = requestUrl_.indexOf( "?" );
+    if ( indexForQueryStart >= 0 )
+    {
+        return requestUrl_.mid( 0, indexForQueryStart );
+    }
+    else
+    {
+        return requestUrl_;
+    }
+}
+
+QMap< QString, QString > Session::requestUrlQuery() const
+{
+    const auto indexForQueryStart = requestUrl_.indexOf( "?" );
+    if ( indexForQueryStart < 0 ) { return { }; }
+
+    QMap< QString, QString > result;
+
+    auto lines = QUrl::fromEncoded( requestUrl_.mid( indexForQueryStart + 1 ).toUtf8() ).toString().split( "&" );
+
+    for ( const auto &line_: lines )
+    {
+        auto line = line_;
+        line.replace( "%5B", "[" );
+        line.replace( "%5D", "]" );
+
+        auto indexOf = line.indexOf( "=" );
+        if ( indexOf > 0 )
+        {
+            result[ line.mid( 0, indexOf ) ] = line.mid( indexOf + 1 );
+        }
+    }
+
+    return result;
+}
+
 void Session::replyText(const QString &replyData)
 {
     auto this_ = this;
@@ -359,8 +397,8 @@ void Session::inspectionBufferSetup1()
             // 没有获取到分割标记，意味着数据不全
             if ( splitFlagIndex == -1 )
             {
-                // 没有获取到MethodToken但是缓冲区内已经有了数据，这可能是一个无效的连接
-                if ( requestMethodToken_.isEmpty() && ( buffer_.size() > 4 ) )
+                // 没有获取到 method 但是缓冲区内已经有了数据，这可能是一个无效的连接
+                if ( requestMethod_.isEmpty() && ( buffer_.size() > 4 ) )
                 {
                     qDebug() << "JQHttpServer::Session::inspectionBuffer: error0";
                     this->deleteLater();
@@ -370,16 +408,16 @@ void Session::inspectionBufferSetup1()
                 return;
             }
 
-            // 如果未获取到MethodToken并且已经定位到了分割标记符，那么直接放弃这个连接
-            if ( requestMethodToken_.isEmpty() && ( splitFlagIndex == 0 ) )
+            // 如果未获取到 method 并且已经定位到了分割标记符，那么直接放弃这个连接
+            if ( requestMethod_.isEmpty() && ( splitFlagIndex == 0 ) )
             {
                 qDebug() << "JQHttpServer::Session::inspectionBuffer: error1";
                 this->deleteLater();
                 return;
             }
 
-            // 如果没有获取到MethodToken则先尝试分析MethodToken
-            if ( requestMethodToken_.isEmpty() )
+            // 如果没有获取到 method 则先尝试分析 method
+            if ( requestMethod_.isEmpty() )
             {
                 auto requestLineDatas = buffer_.mid( 0, splitFlagIndex ).split( ' ' );
                 buffer_.remove( 0, splitFlagIndex + 2 );
@@ -391,16 +429,16 @@ void Session::inspectionBufferSetup1()
                     return;
                 }
 
-                requestMethodToken_ = requestLineDatas.at( 0 );
+                requestMethod_ = requestLineDatas.at( 0 );
                 requestUrl_ = requestLineDatas.at( 1 );
                 requestCrlf_ = requestLineDatas.at( 2 );
 
-                if ( ( requestMethodToken_ != "GET" ) &&
-                     ( requestMethodToken_ != "OPTIONS" ) &&
-                     ( requestMethodToken_ != "POST" ) &&
-                     ( requestMethodToken_ != "PUT" ) )
+                if ( ( requestMethod_ != "GET" ) &&
+                     ( requestMethod_ != "OPTIONS" ) &&
+                     ( requestMethod_ != "POST" ) &&
+                     ( requestMethod_ != "PUT" ) )
                 {
-                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error3:" << requestMethodToken_;
+                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error3:" << requestMethod_;
                     this->deleteLater();
                     return;
                 }
@@ -412,10 +450,10 @@ void Session::inspectionBufferSetup1()
 //                qDebug() << buffer_;
                 headerAcceptedFinish_ = true;
 
-                if ( ( requestMethodToken_.toUpper() == "GET" ) ||
-                     ( requestMethodToken_.toUpper() == "OPTIONS" ) ||
-                     ( ( requestMethodToken_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) ||
-                     ( ( requestMethodToken_.toUpper() == "PUT" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) )
+                if ( ( requestMethod_.toUpper() == "GET" ) ||
+                     ( requestMethod_.toUpper() == "OPTIONS" ) ||
+                     ( ( requestMethod_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) ||
+                     ( ( requestMethod_.toUpper() == "PUT" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) )
                 {
                     this->inspectionBufferSetup2();
                 }
@@ -442,7 +480,7 @@ void Session::inspectionBufferSetup1()
                     value.remove( 0, 1 );
                 }
 
-                headersData_[ key ] = value;
+                requestHeader_[ key ] = value;
 
                 if ( key.toLower() == "content-length" )
                 {
@@ -459,7 +497,7 @@ void Session::inspectionBufferSetup1()
 
 void Session::inspectionBufferSetup2()
 {
-    requestRawData_ += buffer_;
+    requestBody_ += buffer_;
     buffer_.clear();
 
 //    qDebug() << requestRawData_.size() << contentLength_;
@@ -471,7 +509,7 @@ void Session::inspectionBufferSetup2()
         return;
     }
 
-    if ( ( contentLength_ != -1 ) && ( requestRawData_.size() != contentLength_ ) )
+    if ( ( contentLength_ != -1 ) && ( requestBody_.size() != contentLength_ ) )
     {
         return;
     }

@@ -322,7 +322,7 @@ void HTTP::put(
     );
 }
 
-#ifndef Q_OS_LINUX
+#if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
 bool HTTP::patch(
         const QNetworkRequest &request,
         const QByteArray &appendData,
@@ -476,7 +476,7 @@ QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QShare
     return { flag, buf };
 }
 
-#ifndef Q_OS_LINUX
+#if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
 QPair< bool, QByteArray > HTTP::patch(const QString &url, const QByteArray &appendData, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
