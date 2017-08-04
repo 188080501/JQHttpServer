@@ -47,26 +47,26 @@
 using namespace JQHttpServer;
 
 static QString replyTextFormat(
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Type: %1\r\n"
-        "Content-Length: %2\r\n"
+        "HTTP/1.1 %1 OK\r\n"
+        "Content-Type: %2\r\n"
+        "Content-Length: %3\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
-        "%3"
+        "%4"
     );
 
 static QString replyFileFormat(
-        "HTTP/1.1 200 OK\r\n"
-        "Content-Disposition: attachment;filename=%1\r\n"
-        "Content-Length: %2\r\n"
+        "HTTP/1.1 %1 OK\r\n"
+        "Content-Disposition: attachment;filename=%2\r\n"
+        "Content-Length: %3\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
     );
 
 static QString replyImageFormat(
-        "HTTP/1.1 200 OK\r\n"
+        "HTTP/1.1 %1 OK\r\n"
         "Content-Type: image/png\r\n"
-        "Content-Length: %1\r\n"
+        "Content-Length: %2\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
     );
@@ -139,15 +139,29 @@ Session::~Session()
 
 QString Session::requestUrlPath() const
 {
+    QString result;
     const auto indexForQueryStart = requestUrl_.indexOf( "?" );
+
     if ( indexForQueryStart >= 0 )
     {
-        return requestUrl_.mid( 0, indexForQueryStart );
+        result = requestUrl_.mid( 0, indexForQueryStart );
     }
     else
     {
-        return requestUrl_;
+        result = requestUrl_;
     }
+
+    if ( result.startsWith( "//" ) )
+    {
+        result = result.mid( 1 );
+    }
+
+    if ( result.endsWith( "/" ) )
+    {
+        result = result.mid( 0, result.size() - 1 );
+    }
+
+    return result;
 }
 
 QMap< QString, QString > Session::requestUrlQuery() const
@@ -175,7 +189,7 @@ QMap< QString, QString > Session::requestUrlQuery() const
     return result;
 }
 
-void Session::replyText(const QString &replyData)
+void Session::replyText(const QString &replyData, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -186,7 +200,7 @@ void Session::replyText(const QString &replyData)
 
     if ( QThread::currentThread() != this->thread() )
     {
-        QMetaObject::invokeMethod( this, "replyText", Qt::QueuedConnection, Q_ARG( QString, replyData ) );
+        QMetaObject::invokeMethod( this, "replyText", Qt::QueuedConnection, Q_ARG( QString, replyData ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
@@ -204,13 +218,18 @@ void Session::replyText(const QString &replyData)
         return;
     }
 
-    const auto &&data = replyTextFormat.arg( "text;charset=UTF-8", QString::number( replyData.toUtf8().size() ), replyData ).toUtf8();
+    const auto &&data = replyTextFormat.arg(
+                QString::number( httpStatusCode ),
+                "text;charset=UTF-8",
+                QString::number( replyData.toUtf8().size() ),
+                replyData
+            ).toUtf8();
 
     waitWrittenByteCount_ = data.size();
     ioDevice_->write( data );
 }
 
-void Session::replyJsonObject(const QJsonObject &jsonObject)
+void Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -221,7 +240,7 @@ void Session::replyJsonObject(const QJsonObject &jsonObject)
 
     if ( QThread::currentThread() != this->thread() )
     {
-        QMetaObject::invokeMethod( this, "replyJsonObject", Qt::QueuedConnection, Q_ARG( QJsonObject, jsonObject ) );
+        QMetaObject::invokeMethod( this, "replyJsonObject", Qt::QueuedConnection, Q_ARG( QJsonObject, jsonObject ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
@@ -240,13 +259,18 @@ void Session::replyJsonObject(const QJsonObject &jsonObject)
     }
 
     const auto &&data = QJsonDocument( jsonObject ).toJson( QJsonDocument::Compact );
-    const auto &&data2 = replyTextFormat.arg( "application/json;charset=UTF-8", QString::number( data.size() ), QString( data ) ).toUtf8();
+    const auto &&data2 = replyTextFormat.arg(
+                QString::number( httpStatusCode ),
+                "application/json;charset=UTF-8",
+                QString::number( data.size() ),
+                QString( data )
+            ).toUtf8();
 
     waitWrittenByteCount_ = data2.size();
     ioDevice_->write( data2 );
 }
 
-void Session::replyJsonArray(const QJsonArray &jsonArray)
+void Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -257,7 +281,7 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
 
     if ( QThread::currentThread() != this->thread() )
     {
-        QMetaObject::invokeMethod( this, "replyJsonArray", Qt::QueuedConnection, Q_ARG( QJsonArray, jsonArray ) );
+        QMetaObject::invokeMethod( this, "replyJsonArray", Qt::QueuedConnection, Q_ARG( QJsonArray, jsonArray ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
@@ -276,13 +300,18 @@ void Session::replyJsonArray(const QJsonArray &jsonArray)
     }
 
     const auto &&data = QJsonDocument( jsonArray ).toJson( QJsonDocument::Compact );
-    const auto &&data2 = replyTextFormat.arg( "application/json;charset=UTF-8", QString::number( data.size() ), QString( data ) ).toUtf8();
+    const auto &&data2 = replyTextFormat.arg(
+                QString::number( httpStatusCode ),
+                "application/json;charset=UTF-8",
+                QString::number( data.size() ),
+                QString( data )
+            ).toUtf8();
 
     waitWrittenByteCount_ = data2.size();
     ioDevice_->write( data2 );
 }
 
-void Session::replyFile(const QString &filePath)
+void Session::replyFile(const QString &filePath, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -293,7 +322,7 @@ void Session::replyFile(const QString &filePath)
 
     if ( QThread::currentThread() != this->thread() )
     {
-        QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, filePath ) );
+        QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, filePath ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
@@ -322,13 +351,17 @@ void Session::replyFile(const QString &filePath)
         return;
     }
 
-    const auto &&data = replyFileFormat.arg( QFileInfo( filePath ).fileName(), QString::number( file->size() ) ).toUtf8();
+    const auto &&data = replyFileFormat.arg(
+                QString::number( httpStatusCode ),
+                QFileInfo( filePath ).fileName(),
+                QString::number( file->size() )
+            ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
     ioDevice_->write( data );
 }
 
-void Session::replyImage(const QImage &image)
+void Session::replyImage(const QImage &image, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -339,7 +372,7 @@ void Session::replyImage(const QImage &image)
 
     if ( QThread::currentThread() != this->thread() )
     {
-        QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ) );
+        QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
@@ -378,7 +411,10 @@ void Session::replyImage(const QImage &image)
     ioDeviceForReply_.reset( buffer );
     ioDeviceForReply_->seek( 0 );
 
-    const auto &&data = replyImageFormat.arg( QString::number( buffer->buffer().size() ) ).toUtf8();
+    const auto &&data = replyImageFormat.arg(
+                QString::number( httpStatusCode ),
+                QString::number( buffer->buffer().size() )
+            ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write( data );

@@ -80,15 +80,15 @@ public:
     QMap< QString, QString > requestUrlQuery() const;
 
 public slots:
-    void replyText(const QString &replyData);
+    void replyText(const QString &replyData, const int &httpStatusCode = 200);
 
-    void replyJsonObject(const QJsonObject &jsonObject);
+    void replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode = 200);
 
-    void replyJsonArray(const QJsonArray &jsonArray);
+    void replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode = 200);
 
-    void replyFile(const QString &filePath);
+    void replyFile(const QString &filePath, const int &httpStatusCode = 200);
 
-    void replyImage(const QImage &image);
+    void replyImage(const QImage &image, const int &httpStatusCode = 200);
 
 private:
     void inspectionBufferSetup1();
