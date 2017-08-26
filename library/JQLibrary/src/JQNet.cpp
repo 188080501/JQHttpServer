@@ -176,7 +176,7 @@ void HTTP::deleteResource(
 
 bool HTTP::post(
         const QNetworkRequest &request,
-        const QByteArray &appendData,
+        const QByteArray &body,
         QByteArray &target,
         const int &timeout
     )
@@ -184,7 +184,43 @@ bool HTTP::post(
     target.clear();
 
     QEventLoop eventLoop;
-    auto reply = manage_.post( request, appendData );
+    auto reply = manage_.post( request, body );
+    bool failFlag = false;
+
+    this->handle(
+        reply,
+        timeout,
+        [ &target, &eventLoop ](const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( true );
+        },
+        [ &target, &eventLoop ](const QNetworkReply::NetworkError &, const QByteArray &data)
+        {
+            target = data;
+            eventLoop.exit( false );
+        },
+        [ &failFlag, &eventLoop ]()
+        {
+            failFlag = true;
+            eventLoop.exit( false );
+        }
+    );
+
+    return eventLoop.exec() && !failFlag;
+}
+
+bool HTTP::post(
+        const QNetworkRequest &request,
+        const QSharedPointer< QHttpMultiPart > &multiPart,
+        QByteArray &target,
+        const int &timeout
+    )
+{
+    target.clear();
+
+    QEventLoop eventLoop;
+    auto reply = manage_.post( request, multiPart.data() );
     bool failFlag = false;
 
     this->handle(
@@ -212,13 +248,13 @@ bool HTTP::post(
 
 void HTTP::post(
         const QNetworkRequest &request,
-        const QByteArray &appendData,
+        const QByteArray &body,
         const std::function<void (const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
-    auto reply = manage_.post( request, appendData );
+    auto reply = manage_.post( request, body );
 
     this->handle(
         reply,
@@ -234,7 +270,7 @@ void HTTP::post(
 
 bool HTTP::put(
         const QNetworkRequest &request,
-        const QByteArray &appendData,
+        const QByteArray &body,
         QByteArray &target,
         const int &timeout
     )
@@ -242,7 +278,7 @@ bool HTTP::put(
     target.clear();
 
     QEventLoop eventLoop;
-    auto reply = manage_.put( request, appendData );
+    auto reply = manage_.put( request, body );
     bool failFlag = false;
 
     this->handle(
@@ -268,7 +304,12 @@ bool HTTP::put(
     return eventLoop.exec() && !failFlag;
 }
 
-bool HTTP::put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, QByteArray &target, const int &timeout)
+bool HTTP::put(
+        const QNetworkRequest &request,
+        const QSharedPointer< QHttpMultiPart > &multiPart,
+        QByteArray &target,
+        const int &timeout
+    )
 {
     target.clear();
 
@@ -302,13 +343,13 @@ bool HTTP::put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiP
 
 void HTTP::put(
         const QNetworkRequest &request,
-        const QByteArray &appendData,
+        const QByteArray &body,
         const std::function<void (const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
-    auto reply = manage_.put( request, appendData );
+    auto reply = manage_.put( request, body );
 
     this->handle(
         reply,
@@ -325,7 +366,7 @@ void HTTP::put(
 #if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
 bool HTTP::patch(
         const QNetworkRequest &request,
-        const QByteArray &appendData,
+        const QByteArray &body,
         QByteArray &target,
         const int &timeout
     )
@@ -333,7 +374,7 @@ bool HTTP::patch(
     target.clear();
 
     QEventLoop eventLoop;
-    auto reply = manage_.sendCustomRequest( request, "PATCH", appendData );
+    auto reply = manage_.sendCustomRequest( request, "PATCH", body );
     bool failFlag = false;
 
     this->handle(
@@ -361,13 +402,13 @@ bool HTTP::patch(
 
 void HTTP::patch(
         const QNetworkRequest &request,
-        const QByteArray &appendData,
+        const QByteArray &body,
         const std::function<void (const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
 {
-    auto reply = manage_.sendCustomRequest( request, "PATCH", appendData );
+    auto reply = manage_.sendCustomRequest( request, "PATCH", body );
 
     this->handle(
         reply,
@@ -422,46 +463,56 @@ QPair< bool, QByteArray > HTTP::deleteResource(const QNetworkRequest &request, c
     return { flag, buf };
 }
 
-QPair< bool, QByteArray > HTTP::post(const QString &url, const QByteArray &appendData, const int &timeout)
+QPair< bool, QByteArray > HTTP::post(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray buf;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
 
-    const auto &&flag = HTTP().post( networkRequest, appendData, buf, timeout );
+    const auto &&flag = HTTP().post( networkRequest, body, buf, timeout );
 
     return { flag, buf };
 }
 
-QPair< bool, QByteArray > HTTP::post(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout)
+QPair< bool, QByteArray > HTTP::post(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
     QByteArray buf;
     HTTP http;
 
-    const auto &&flag = http.post( request, appendData, buf, timeout );
+    const auto &&flag = http.post( request, body, buf, timeout );
 
     return { flag, buf };
 }
 
-QPair< bool, QByteArray > HTTP::put(const QString &url, const QByteArray &appendData, const int &timeout)
+QPair< bool, QByteArray > HTTP::post(const QNetworkRequest &request, const QSharedPointer<QHttpMultiPart> &multiPart, const int &timeout)
+{
+    QByteArray buf;
+    HTTP http;
+
+    const auto &&flag = http.post( request, multiPart, buf, timeout );
+
+    return { flag, buf };
+}
+
+QPair< bool, QByteArray > HTTP::put(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray buf;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
 
-    const auto &&flag = HTTP().put( networkRequest, appendData, buf, timeout );
+    const auto &&flag = HTTP().put( networkRequest, body, buf, timeout );
 
     return { flag, buf };
 }
 
-QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout)
+QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
     QByteArray buf;
     HTTP http;
 
-    const auto &&flag = http.put( request, appendData, buf, timeout );
+    const auto &&flag = http.put( request, body, buf, timeout );
 
     return { flag, buf };
 }
@@ -477,24 +528,24 @@ QPair< bool, QByteArray > HTTP::put(const QNetworkRequest &request, const QShare
 }
 
 #if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
-QPair< bool, QByteArray > HTTP::patch(const QString &url, const QByteArray &appendData, const int &timeout)
+QPair< bool, QByteArray > HTTP::patch(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray buf;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
 
-    const auto &&flag = HTTP().patch( networkRequest, appendData, buf, timeout );
+    const auto &&flag = HTTP().patch( networkRequest, body, buf, timeout );
 
     return { flag, buf };
 }
 
-QPair< bool, QByteArray > HTTP::patch(const QNetworkRequest &request, const QByteArray &appendData, const int &timeout)
+QPair< bool, QByteArray > HTTP::patch(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
     QByteArray buf;
     HTTP http;
 
-    const auto &&flag = http.patch( request, appendData, buf, timeout );
+    const auto &&flag = http.patch( request, body, buf, timeout );
 
     return { flag, buf };
 }

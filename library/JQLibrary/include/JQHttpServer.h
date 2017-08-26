@@ -159,8 +159,8 @@ signals:
     void readyToClose();
 
 protected:
-    QSharedPointer< QThreadPool > handleThreadPool_;
     QSharedPointer< QThreadPool > serverThreadPool_;
+    QSharedPointer< QThreadPool > handleThreadPool_;
 
     QMutex mutex_;
 
