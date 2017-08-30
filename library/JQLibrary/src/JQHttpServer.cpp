@@ -178,6 +178,8 @@ QMap< QString, QString > Session::requestUrlQuery() const
         auto line = line_;
         line.replace( "%5B", "[" );
         line.replace( "%5D", "]" );
+        line.replace( "%7B", "{" );
+        line.replace( "%7D", "}" );
 
         auto indexOf = line.indexOf( "=" );
         if ( indexOf > 0 )
