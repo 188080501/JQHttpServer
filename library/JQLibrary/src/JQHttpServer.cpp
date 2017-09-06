@@ -161,7 +161,30 @@ QString Session::requestUrlPath() const
         result = result.mid( 0, result.size() - 1 );
     }
 
+    result.replace( "%5B", "[" );
+    result.replace( "%5D", "]" );
+    result.replace( "%7B", "{" );
+    result.replace( "%7D", "}" );
+    result.replace( "%5E", "^" );
+
     return result;
+}
+
+QStringList Session::requestUrlPathSplitToList() const
+{
+    auto list = this->requestUrlPath().split( "/" );
+
+    while ( !list.isEmpty() && list.first().isEmpty() )
+    {
+        list.pop_front();
+    }
+
+    while ( !list.isEmpty() && list.last().isEmpty() )
+    {
+        list.pop_back();
+    }
+
+    return list;
 }
 
 QMap< QString, QString > Session::requestUrlQuery() const
@@ -180,6 +203,7 @@ QMap< QString, QString > Session::requestUrlQuery() const
         line.replace( "%5D", "]" );
         line.replace( "%7B", "{" );
         line.replace( "%7D", "}" );
+        line.replace( "%5E", "^" );
 
         auto indexOf = line.indexOf( "=" );
         if ( indexOf > 0 )

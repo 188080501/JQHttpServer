@@ -77,6 +77,8 @@ public:
 
     QString requestUrlPath() const;
 
+    QStringList requestUrlPathSplitToList() const;
+
     QMap< QString, QString > requestUrlQuery() const;
 
 public slots:
