@@ -71,6 +71,15 @@ static QString replyImageFormat(
         "\r\n"
     );
 
+static QString replyOptionsFormat(
+        "HTTP/1.1 200 OK\r\n"
+        "Allow: OPTIONS, GET, POST, PUT, HEAD\r\n"
+        "Access-Control-Allow-Methods: OPTIONS, GET, POST, PUT, HEAD\r\n"
+        "Content-Length: 0\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n"
+    );
+
 // Session
 Session::Session(const QPointer<QIODevice> &tcpSocket):
     ioDevice_( tcpSocket ),
@@ -444,6 +453,41 @@ void Session::replyImage(const QImage &image, const int &httpStatusCode)
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write( data );
+}
+
+void Session::replyOptions()
+{
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyOptions: current session this is null";
+        return;
+    }
+
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyOptions", Qt::QueuedConnection );
+        return;
+    }
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyOptions: already reply";
+        return;
+    }
+    alreadyReply_ = true;
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyOptions: error1";
+        this->deleteLater();
+        return;
+    }
+
+    const auto &&data2 = replyOptionsFormat.toUtf8();
+
+    waitWrittenByteCount_ = data2.size();
+    ioDevice_->write( data2 );
 }
 
 void Session::inspectionBufferSetup1()

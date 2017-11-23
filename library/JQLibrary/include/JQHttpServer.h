@@ -92,6 +92,8 @@ public slots:
 
     void replyImage(const QImage &image, const int &httpStatusCode = 200);
 
+    void replyOptions();
+
 private:
     void inspectionBufferSetup1();
 
