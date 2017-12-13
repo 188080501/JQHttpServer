@@ -55,6 +55,15 @@ static QString replyTextFormat(
         "%4"
     );
 
+static QString replyRedirectsFormat(
+        "HTTP/1.1 %1 OK\r\n"
+        "Content-Type: %2\r\n"
+        "Content-Length: %3\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n"
+        "%4"
+    );
+
 static QString replyFileFormat(
         "HTTP/1.1 %1 OK\r\n"
         "Content-Disposition: attachment;filename=%2\r\n"
@@ -258,6 +267,48 @@ void Session::replyText(const QString &replyData, const int &httpStatusCode)
                 "text;charset=UTF-8",
                 QString::number( replyData.toUtf8().size() ),
                 replyData
+            ).toUtf8();
+
+    waitWrittenByteCount_ = data.size();
+    ioDevice_->write( data );
+}
+
+void Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
+{
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyRedirects: current session this is null";
+        return;
+    }
+
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyRedirects", Qt::QueuedConnection, Q_ARG( QUrl, targetUrl ), Q_ARG( int, httpStatusCode ) );
+        return;
+    }
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyRedirects: already reply";
+        return;
+    }
+    alreadyReply_ = true;
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyRedirects: error1";
+        this->deleteLater();
+        return;
+    }
+
+    const auto &&buffer = QString( "<head>\n<meta http-equiv=\"refresh\" content=\"0;URL=%1/\" />\n</head>" ).arg( targetUrl.toString() );
+
+    const auto &&data = replyRedirectsFormat.arg(
+                QString::number( httpStatusCode ),
+                "text;charset=UTF-8",
+                QString::number( buffer.toUtf8().size() ),
+                buffer
             ).toUtf8();
 
     waitWrittenByteCount_ = data.size();

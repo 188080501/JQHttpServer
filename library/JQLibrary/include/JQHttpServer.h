@@ -38,6 +38,7 @@
 #include <QSet>
 #include <QMutex>
 #include <QHostAddress>
+#include <QUrl>
 
 class QIODevice;
 class QThreadPool;
@@ -83,6 +84,8 @@ public:
 
 public slots:
     void replyText(const QString &replyData, const int &httpStatusCode = 200);
+
+    void replyRedirects(const QUrl &targetUrl, const int &httpStatusCode = 200);
 
     void replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode = 200);
 
