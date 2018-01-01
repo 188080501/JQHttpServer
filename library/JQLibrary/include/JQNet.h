@@ -15,8 +15,8 @@
     http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 */
 
-#ifndef JQNET_H_
-#define JQNET_H_
+#ifndef JQLIBRARY_INCLUDE_JQNET_H_
+#define JQLIBRARY_INCLUDE_JQNET_H_
 
 #ifndef QT_NETWORK_LIB
 #   error("Please add network in pro file")
@@ -183,4 +183,4 @@ private:
 
 }
 
-#endif//JQNET_H_
+#endif//JQLIBRARY_INCLUDE_JQNET_H_
