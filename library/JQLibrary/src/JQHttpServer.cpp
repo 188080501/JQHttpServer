@@ -80,6 +80,14 @@ static QString replyImageFormat(
         "\r\n"
     );
 
+static QString replyBytesFormat(
+        "HTTP/1.1 %1 OK\r\n"
+        "Content-Type: application/octet-stream\r\n"
+        "Content-Length: %2\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "\r\n"
+    );
+
 static QString replyOptionsFormat(
         "HTTP/1.1 200 OK\r\n"
         "Allow: OPTIONS, GET, POST, PUT, HEAD\r\n"
@@ -504,6 +512,58 @@ void Session::replyImage(const QImage &image, const int &httpStatusCode)
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write( data );
+}
+
+void Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
+{
+    auto this_ = this;
+    if (!this_)
+    {
+        qDebug() << "JQHttpServer::Session::replyBytes: current session this is null";
+        return;
+    }
+
+    if (QThread::currentThread() != this->thread())
+    {
+        QMetaObject::invokeMethod(this, "replyBytes", Qt::QueuedConnection, Q_ARG(QByteArray, bytes), Q_ARG(int, httpStatusCode));
+        return;
+    }
+
+    if (alreadyReply_)
+    {
+        qDebug() << "JQHttpServer::Session::replyBytes: already reply";
+        return;
+    }
+    alreadyReply_ = true;
+
+    if (ioDevice_.isNull())
+    {
+        qDebug() << "JQHttpServer::Session::replyBytes: error1";
+        this->deleteLater();
+        return;
+    }
+
+    auto buffer = new QBuffer;
+    buffer->setData(bytes);
+
+    if (!buffer->open(QIODevice::ReadWrite))
+    {
+        qDebug() << "JQHttpServer::Session::replyBytes: open buffer error";
+        delete buffer;
+        this->deleteLater();
+        return;
+    }
+
+    ioDeviceForReply_.reset(buffer);
+    ioDeviceForReply_->seek(0);
+
+    const auto &&data = replyBytesFormat.arg(
+        QString::number(httpStatusCode),
+        QString::number(buffer->buffer().size())
+        ).toUtf8();
+
+    waitWrittenByteCount_ = data.size() + buffer->buffer().size();
+    ioDevice_->write(data);
 }
 
 void Session::replyOptions()
