@@ -73,8 +73,8 @@ static QString replyFileFormat(
     );
 
 static QString replyImageFormat(
-        "HTTP/1.1 %1 OK\r\n"
-        "Content-Type: image/png\r\n"
+        "HTTP/1.1 %1\r\n"
+        "Content-Type: image\r\n"
         "Content-Length: %2\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "\r\n"
@@ -511,6 +511,58 @@ void Session::replyImage(const QImage &image, const int &httpStatusCode)
             ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
+    ioDevice_->write( data );
+}
+
+void Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
+{
+    auto this_ = this;
+    if ( !this_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: current session this is null";
+        return;
+    }
+
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QString, imageFilePath ), Q_ARG( int, httpStatusCode ) );
+        return;
+    }
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        return;
+    }
+    alreadyReply_ = true;
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: error1";
+        this->deleteLater();
+        return;
+    }
+
+
+    auto buffer = new QFile( imageFilePath );
+
+    if ( !buffer->open( QIODevice::ReadWrite ) )
+    {
+        qDebug() << "JQHttpServer::Session::replyImage: open buffer error";
+        delete buffer;
+        this->deleteLater();
+        return;
+    }
+
+    ioDeviceForReply_.reset( buffer );
+    ioDeviceForReply_->seek( 0 );
+
+    const auto &&data = replyImageFormat.arg(
+                QString::number( httpStatusCode ),
+                QString::number( buffer->size() )
+            ).toUtf8();
+
+    waitWrittenByteCount_ = data.size() + buffer->size();
     ioDevice_->write( data );
 }
 
