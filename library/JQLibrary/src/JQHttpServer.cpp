@@ -44,8 +44,6 @@
 #   include <QSslConfiguration>
 #endif
 
-using namespace JQHttpServer;
-
 static QString replyTextFormat(
         "HTTP/1.1 %1 OK\r\n"
         "Content-Type: %2\r\n"
@@ -98,7 +96,7 @@ static QString replyOptionsFormat(
     );
 
 // Session
-Session::Session(const QPointer<QIODevice> &tcpSocket):
+JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
     ioDevice_( tcpSocket ),
     timerForClose_( new QTimer )
 {
@@ -155,7 +153,7 @@ Session::Session(const QPointer<QIODevice> &tcpSocket):
     connect( timerForClose_.data(), &QTimer::timeout, this, &QObject::deleteLater );
 }
 
-Session::~Session()
+JQHttpServer::Session::~Session()
 {
     if ( !ioDevice_.isNull() )
     {
@@ -163,7 +161,7 @@ Session::~Session()
     }
 }
 
-QString Session::requestUrlPath() const
+QString JQHttpServer::Session::requestUrlPath() const
 {
     QString result;
     const auto indexForQueryStart = requestUrl_.indexOf( "?" );
@@ -196,7 +194,7 @@ QString Session::requestUrlPath() const
     return result;
 }
 
-QStringList Session::requestUrlPathSplitToList() const
+QStringList JQHttpServer::Session::requestUrlPathSplitToList() const
 {
     auto list = this->requestUrlPath().split( "/" );
 
@@ -213,7 +211,7 @@ QStringList Session::requestUrlPathSplitToList() const
     return list;
 }
 
-QMap< QString, QString > Session::requestUrlQuery() const
+QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
 {
     const auto indexForQueryStart = requestUrl_.indexOf( "?" );
     if ( indexForQueryStart < 0 ) { return { }; }
@@ -241,7 +239,7 @@ QMap< QString, QString > Session::requestUrlQuery() const
     return result;
 }
 
-void Session::replyText(const QString &replyData, const int &httpStatusCode)
+void JQHttpServer::Session::replyText(const QString &replyData, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -281,7 +279,7 @@ void Session::replyText(const QString &replyData, const int &httpStatusCode)
     ioDevice_->write( data );
 }
 
-void Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
+void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -323,7 +321,7 @@ void Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
     ioDevice_->write( data );
 }
 
-void Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
+void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -364,7 +362,7 @@ void Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStat
     ioDevice_->write( data2 );
 }
 
-void Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
+void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -405,7 +403,7 @@ void Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusC
     ioDevice_->write( data2 );
 }
 
-void Session::replyFile(const QString &filePath, const int &httpStatusCode)
+void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -455,7 +453,7 @@ void Session::replyFile(const QString &filePath, const int &httpStatusCode)
     ioDevice_->write( data );
 }
 
-void Session::replyImage(const QImage &image, const int &httpStatusCode)
+void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -514,7 +512,7 @@ void Session::replyImage(const QImage &image, const int &httpStatusCode)
     ioDevice_->write( data );
 }
 
-void Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
+void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
 {
     auto this_ = this;
     if ( !this_ )
@@ -566,7 +564,7 @@ void Session::replyImage(const QString &imageFilePath, const int &httpStatusCode
     ioDevice_->write( data );
 }
 
-void Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
+void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
 {
     auto this_ = this;
     if (!this_)
@@ -618,7 +616,7 @@ void Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
     ioDevice_->write(data);
 }
 
-void Session::replyOptions()
+void JQHttpServer::Session::replyOptions()
 {
     auto this_ = this;
     if ( !this_ )
@@ -653,7 +651,7 @@ void Session::replyOptions()
     ioDevice_->write( data2 );
 }
 
-void Session::inspectionBufferSetup1()
+void JQHttpServer::Session::inspectionBufferSetup1()
 {
     if ( !headerAcceptedFinish_ )
     {
@@ -764,7 +762,7 @@ void Session::inspectionBufferSetup1()
     }
 }
 
-void Session::inspectionBufferSetup2()
+void JQHttpServer::Session::inspectionBufferSetup2()
 {
     requestBody_ += buffer_;
     buffer_.clear();
@@ -787,7 +785,7 @@ void Session::inspectionBufferSetup2()
 }
 
 // AbstractManage
-AbstractManage::AbstractManage(const int &handleMaxThreadCount)
+JQHttpServer::AbstractManage::AbstractManage(const int &handleMaxThreadCount)
 {
     handleThreadPool_.reset( new QThreadPool );
     serverThreadPool_.reset( new QThreadPool );
@@ -796,12 +794,12 @@ AbstractManage::AbstractManage(const int &handleMaxThreadCount)
     serverThreadPool_->setMaxThreadCount( 1 );
 }
 
-AbstractManage::~AbstractManage()
+JQHttpServer::AbstractManage::~AbstractManage()
 {
     this->stopHandleThread();
 }
 
-bool AbstractManage::begin()
+bool JQHttpServer::AbstractManage::begin()
 {
     if ( QThread::currentThread() != this->thread() )
     {
@@ -818,7 +816,7 @@ bool AbstractManage::begin()
     return this->startServerThread();
 }
 
-void AbstractManage::close()
+void JQHttpServer::AbstractManage::close()
 {
     if ( !this->isRunning() )
     {
@@ -834,7 +832,7 @@ void AbstractManage::close()
     }
 }
 
-bool AbstractManage::startServerThread()
+bool JQHttpServer::AbstractManage::startServerThread()
 {
     QSemaphore semaphore;
 
@@ -860,17 +858,17 @@ bool AbstractManage::startServerThread()
     return this->isRunning();
 }
 
-void AbstractManage::stopHandleThread()
+void JQHttpServer::AbstractManage::stopHandleThread()
 {
     handleThreadPool_->waitForDone();
 }
 
-void AbstractManage::stopServerThread()
+void JQHttpServer::AbstractManage::stopServerThread()
 {
     serverThreadPool_->waitForDone();
 }
 
-void AbstractManage::newSession(const QPointer< Session > &session)
+void JQHttpServer::AbstractManage::newSession(const QPointer< Session > &session)
 {
     session->setHandleAcceptedCallback( [ this ](const QPointer< JQHttpServer::Session > &session){ this->handleAccepted( session ); } );
 
@@ -884,7 +882,7 @@ void AbstractManage::newSession(const QPointer< Session > &session)
     availableSessions_.insert( session.data() );
 }
 
-void AbstractManage::handleAccepted(const QPointer<Session> &session)
+void JQHttpServer::AbstractManage::handleAccepted(const QPointer<Session> &session)
 {
     QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
     {
@@ -899,11 +897,11 @@ void AbstractManage::handleAccepted(const QPointer<Session> &session)
 }
 
 // TcpServerManage
-TcpServerManage::TcpServerManage(const int &handleMaxThreadCount):
+JQHttpServer::TcpServerManage::TcpServerManage(const int &handleMaxThreadCount):
     AbstractManage( handleMaxThreadCount )
 { }
 
-TcpServerManage::~TcpServerManage()
+JQHttpServer::TcpServerManage::~TcpServerManage()
 {
     if ( this->isRunning() )
     {
@@ -911,7 +909,7 @@ TcpServerManage::~TcpServerManage()
     }
 }
 
-bool TcpServerManage::listen(const QHostAddress &address, const quint16 &port)
+bool JQHttpServer::TcpServerManage::listen(const QHostAddress &address, const quint16 &port)
 {
     listenAddress_ = address;
     listenPort_ = port;
@@ -919,12 +917,12 @@ bool TcpServerManage::listen(const QHostAddress &address, const quint16 &port)
     return this->begin();
 }
 
-bool TcpServerManage::isRunning()
+bool JQHttpServer::TcpServerManage::isRunning()
 {
     return !tcpServer_.isNull();
 }
 
-bool TcpServerManage::onStart()
+bool JQHttpServer::TcpServerManage::onStart()
 {
     mutex_.lock();
 
@@ -954,7 +952,7 @@ bool TcpServerManage::onStart()
     return true;
 }
 
-void TcpServerManage::onFinish()
+void JQHttpServer::TcpServerManage::onFinish()
 {
     this->mutex_.lock();
 
@@ -972,7 +970,7 @@ namespace JQHttpServer
 
 class SslServerHelper: public QTcpServer
 {
-    void incomingConnection(qintptr socketDescriptor)
+    void incomingConnection(qintptr socketDescriptor) final
     {
         onIncomingConnectionCallback_( socketDescriptor );
     }
@@ -983,11 +981,11 @@ public:
 
 }
 
-SslServerManage::SslServerManage(const int &handleMaxThreadCount):
+JQHttpServer::SslServerManage::SslServerManage(const int &handleMaxThreadCount):
     AbstractManage( handleMaxThreadCount )
 { }
 
-SslServerManage::~SslServerManage()
+JQHttpServer::SslServerManage::~SslServerManage()
 {
     if ( this->isRunning() )
     {
@@ -995,7 +993,7 @@ SslServerManage::~SslServerManage()
     }
 }
 
-bool SslServerManage::listen(
+bool JQHttpServer::SslServerManage::listen(
         const QHostAddress &address,
         const quint16 &port,
         const QString &crtFilePath,
@@ -1050,12 +1048,12 @@ bool SslServerManage::listen(
     return this->begin();
 }
 
-bool SslServerManage::isRunning()
+bool JQHttpServer::SslServerManage::isRunning()
 {
     return !tcpServer_.isNull();
 }
 
-bool SslServerManage::onStart()
+bool JQHttpServer::SslServerManage::onStart()
 {
     mutex_.lock();
 
@@ -1106,7 +1104,7 @@ bool SslServerManage::onStart()
     return true;
 }
 
-void SslServerManage::onFinish()
+void JQHttpServer::SslServerManage::onFinish()
 {
     this->mutex_.lock();
 
@@ -1119,11 +1117,11 @@ void SslServerManage::onFinish()
 #endif
 
 // LocalServerManage
-LocalServerManage::LocalServerManage(const int &handleMaxThreadCount):
+JQHttpServer::LocalServerManage::LocalServerManage(const int &handleMaxThreadCount):
     AbstractManage( handleMaxThreadCount )
 { }
 
-LocalServerManage::~LocalServerManage()
+JQHttpServer::LocalServerManage::~LocalServerManage()
 {
     if ( this->isRunning() )
     {
@@ -1131,19 +1129,19 @@ LocalServerManage::~LocalServerManage()
     }
 }
 
-bool LocalServerManage::listen(const QString &name)
+bool JQHttpServer::LocalServerManage::listen(const QString &name)
 {
     listenName_ = name;
 
     return this->begin();
 }
 
-bool LocalServerManage::isRunning()
+bool JQHttpServer::LocalServerManage::isRunning()
 {
     return !localServer_.isNull();
 }
 
-bool LocalServerManage::onStart()
+bool JQHttpServer::LocalServerManage::onStart()
 {
     mutex_.lock();
 
@@ -1171,7 +1169,7 @@ bool LocalServerManage::onStart()
     return true;
 }
 
-void LocalServerManage::onFinish()
+void JQHttpServer::LocalServerManage::onFinish()
 {
     this->mutex_.lock();
 
