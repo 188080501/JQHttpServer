@@ -44,6 +44,14 @@
 #   include <QSslConfiguration>
 #endif
 
+#define JQHTTPSERVER_SESSION_PROTECTION( functionName, ... ) \
+    auto this_ = this; \
+    if ( !this_ || ( contentLength_ < -1 ) || ( waitWrittenByteCount_ < -1 ) ) \
+    { \
+        qDebug() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": current session this is null"; \
+        return __VA_ARGS__; \
+    }
+
 static QString replyTextFormat(
         "HTTP/1.1 %1 OK\r\n"
         "Content-Type: %2\r\n"
@@ -163,6 +171,8 @@ JQHttpServer::Session::~Session()
 
 QString JQHttpServer::Session::requestUrlPath() const
 {
+    JQHTTPSERVER_SESSION_PROTECTION( "requestUrlPath", { } );
+
     QString result;
     const auto indexForQueryStart = requestUrl_.indexOf( "?" );
 
@@ -241,10 +251,11 @@ QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
 
 void JQHttpServer::Session::replyText(const QString &replyData, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyText" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyText: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -254,11 +265,6 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyText: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -281,10 +287,11 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
 
 void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyRedirects" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyRedirects: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -294,11 +301,6 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyRedirects: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -323,10 +325,11 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
 
 void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonObject" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyJsonObject: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -336,11 +339,6 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyJsonObject: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -364,10 +362,11 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
 
 void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonArray" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyJsonArray: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -377,11 +376,6 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyJsonArray: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -405,10 +399,11 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
 
 void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyFile" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyFile: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -418,11 +413,6 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyFile: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -455,10 +445,11 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
 
 void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -468,11 +459,6 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -514,10 +500,11 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
 
 void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -527,11 +514,6 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
@@ -566,12 +548,7 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
 
 void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
 {
-    auto this_ = this;
-    if (!this_)
-    {
-        qDebug() << "JQHttpServer::Session::replyBytes: current session this is null";
-        return;
-    }
+    JQHTTPSERVER_SESSION_PROTECTION( "replyBytes" );
 
     if (QThread::currentThread() != this->thread())
     {
@@ -618,10 +595,11 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
 
 void JQHttpServer::Session::replyOptions()
 {
-    auto this_ = this;
-    if ( !this_ )
+    JQHTTPSERVER_SESSION_PROTECTION( "replyOptions" );
+
+    if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyOptions: current session this is null";
+        qDebug() << "JQHttpServer::Session::replyImage: already reply";
         return;
     }
 
@@ -631,11 +609,6 @@ void JQHttpServer::Session::replyOptions()
         return;
     }
 
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyOptions: already reply";
-        return;
-    }
     alreadyReply_ = true;
 
     if ( ioDevice_.isNull() )
