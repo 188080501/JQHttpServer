@@ -255,7 +255,7 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
 
     if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        qDebug() << "JQHttpServer::Session::replyText: already reply";
         return;
     }
 
@@ -291,7 +291,7 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
 
     if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        qDebug() << "JQHttpServer::Session::replyRedirects: already reply";
         return;
     }
 
@@ -329,7 +329,7 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
 
     if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        qDebug() << "JQHttpServer::Session::replyJsonObject: already reply";
         return;
     }
 
@@ -366,7 +366,7 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
 
     if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        qDebug() << "JQHttpServer::Session::replyJsonArray: already reply";
         return;
     }
 
@@ -403,7 +403,7 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
 
     if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        qDebug() << "JQHttpServer::Session::replyFile: already reply";
         return;
     }
 
@@ -599,7 +599,7 @@ void JQHttpServer::Session::replyOptions()
 
     if ( alreadyReply_ )
     {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
+        qDebug() << "JQHttpServer::Session::replyOptions: already reply";
         return;
     }
 
@@ -1040,15 +1040,15 @@ bool JQHttpServer::SslServerManage::onStart()
 
         sslSocket->setSslConfiguration( *sslConfiguration_ );
 
+        QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
+        {
+//            qDebug() << "SslServerManage::encrypted";
+            this->newSession( new Session( sslSocket ) );
+        } );
 //        QObject::connect( sslSocket, &QSslSocket::modeChanged, [ this, sslSocket ](QSslSocket::SslMode mode)
 //        {
 //            qDebug() << "modeChanged" << mode;
 //        } );
-        QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
-        {
-//            qDebug() << "encrypted";
-            this->newSession( new Session( sslSocket ) );
-        } );
 //        QObject::connect( sslSocket, (void(QSslSocket::*)(QAbstractSocket::SocketError))&QSslSocket::error, [ sslSocket ](QAbstractSocket::SocketError e)
 //        {
 //            qDebug() << e << sslSocket->errorString();
