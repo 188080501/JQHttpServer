@@ -146,7 +146,7 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
             }
             else
             {
-                ioDevice_->write( ioDeviceForReply_->read( 8 * 1024 ) );
+                ioDevice_->write( ioDeviceForReply_->read( 512 * 1024 ) );
             }
         }
 
