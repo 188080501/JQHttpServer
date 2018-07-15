@@ -141,7 +141,7 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
         {
             if ( ioDeviceForReply_->atEnd() )
             {
-                delete ioDeviceForReply_.data();
+                ioDeviceForReply_->deleteLater();
                 ioDeviceForReply_.clear();
             }
             else
