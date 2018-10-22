@@ -42,6 +42,8 @@ QPair< QNetworkAddressEntry, QNetworkInterface > getNetworkAddressEntryWithNetwo
 
 QString getHostName();
 
+bool pingIp(const QHostAddress &hostAddress);
+
 class HTTP
 {
     Q_DISABLE_COPY( HTTP )

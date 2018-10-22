@@ -23,6 +23,9 @@
 #include <QUrl>
 #include <QHostInfo>
 
+// JQLibrary lib import
+#include "JQFoundation.h"
+
 QNetworkAddressEntry JQNet::getNetworkAddressEntry()
 {
     return getNetworkAddressEntryWithNetworkInterface().first;
@@ -39,7 +42,7 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
 
         if ( ridVm && interface.humanReadableName().startsWith( "vm" ) ) { continue; }
 
-        for ( const auto &entry: static_cast< const QList< QNetworkAddressEntry > >( interface.addressEntries() ) )
+        for ( const auto &entry: JQCONST( interface.addressEntries() ) )
         {
             if ( entry.ip().toIPv4Address() )
             {
@@ -58,6 +61,23 @@ QString JQNet::getHostName()
 #else
     return QHostInfo::localHostName();
 #endif
+}
+
+bool JQNet::pingIp(const QHostAddress &hostAddress)
+{
+//    qDebug() << "NetworkManage::pingIp:" << hostAddress.toString();
+
+    QPair< int, QByteArray > pingResult = { -1, { } };
+
+#ifdef Q_OS_MAC
+    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-c1", "-W300", hostAddress.toString() } );
+#endif
+
+#ifdef Q_OS_WIN
+    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-n", "1", "-w", "300", hostAddress.toString() } );
+#endif
+
+    return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( hostAddress.toString().toUtf8() ) > 1 );
 }
 
 // HTTP
