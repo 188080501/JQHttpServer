@@ -23,6 +23,11 @@
 #include <QUrl>
 #include <QHostInfo>
 
+// JQLibrary lib import
+#ifdef JQFOUNDATION_LIB
+#   include "JQFoundation.h"
+#endif
+
 QNetworkAddressEntry JQNet::getNetworkAddressEntry()
 {
     return getNetworkAddressEntryWithNetworkInterface().first;
