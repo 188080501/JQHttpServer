@@ -42,7 +42,9 @@ QPair< QNetworkAddressEntry, QNetworkInterface > getNetworkAddressEntryWithNetwo
 
 QString getHostName();
 
+#ifdef JQFOUNDATION_LIB
 bool pingIp(const QHostAddress &hostAddress);
+#endif
 
 class HTTP
 {

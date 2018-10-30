@@ -23,9 +23,6 @@
 #include <QUrl>
 #include <QHostInfo>
 
-// JQLibrary lib import
-#include "JQFoundation.h"
-
 QNetworkAddressEntry JQNet::getNetworkAddressEntry()
 {
     return getNetworkAddressEntryWithNetworkInterface().first;
@@ -42,7 +39,7 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
 
         if ( ridVm && interface.humanReadableName().startsWith( "vm" ) ) { continue; }
 
-        for ( const auto &entry: JQCONST( interface.addressEntries() ) )
+        for ( const auto &entry: static_cast< QList<QNetworkAddressEntry> >( interface.addressEntries() ) )
         {
             if ( entry.ip().toIPv4Address() )
             {
@@ -63,6 +60,7 @@ QString JQNet::getHostName()
 #endif
 }
 
+#ifdef JQFOUNDATION_LIB
 bool JQNet::pingIp(const QHostAddress &hostAddress)
 {
 //    qDebug() << "NetworkManage::pingIp:" << hostAddress.toString();
@@ -79,6 +77,7 @@ bool JQNet::pingIp(const QHostAddress &hostAddress)
 
     return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( hostAddress.toString().toUtf8() ) > 1 );
 }
+#endif
 
 // HTTP
 bool JQNet::HTTP::get(
