@@ -66,6 +66,8 @@ public:
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
+    inline QString requestSource() const { return requestSource_; }
+
     inline QString requestMethod() const { return requestMethod_; }
 
     inline QString requestUrl() const { return requestUrl_; }
@@ -113,6 +115,7 @@ private:
 
     QByteArray buffer_;
 
+    QString requestSource_;
     QString requestMethod_;
     QString requestUrl_;
     QString requestCrlf_;
