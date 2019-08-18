@@ -22,6 +22,7 @@
 #include <QTimer>
 #include <QUrl>
 #include <QHostInfo>
+#include <QTcpSocket>
 
 // JQLibrary lib import
 #ifdef JQFOUNDATION_LIB
@@ -63,6 +64,16 @@ QString JQNet::getHostName()
 #else
     return QHostInfo::localHostName();
 #endif
+}
+
+bool JQNet::tcpReachable(const QString &hostName, const quint16 &port, const int &timeout)
+{
+    QTcpSocket socket;
+
+    socket.connectToHost( hostName, port );
+    socket.waitForConnected( timeout );
+
+    return socket.state() == QAbstractSocket::ConnectedState;
 }
 
 #ifdef JQFOUNDATION_LIB

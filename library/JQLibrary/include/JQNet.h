@@ -42,6 +42,8 @@ QPair< QNetworkAddressEntry, QNetworkInterface > getNetworkAddressEntryWithNetwo
 
 QString getHostName();
 
+bool tcpReachable(const QString &hostName, const quint16 &port, const int &timeout = 1000);
+
 #ifdef JQFOUNDATION_LIB
 bool pingIp(const QHostAddress &hostAddress);
 #endif
