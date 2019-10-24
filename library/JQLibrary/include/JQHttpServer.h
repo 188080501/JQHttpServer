@@ -40,6 +40,9 @@
 #include <QHostAddress>
 #include <QUrl>
 
+// JQLibrary lib import
+#include <JQDeclare>
+
 class QIODevice;
 class QThreadPool;
 class QHostAddress;
@@ -54,7 +57,7 @@ class QSslConfiguration;
 namespace JQHttpServer
 {
 
-class Session: public QObject
+class JQLIBRARY_EXPORT Session: public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY( Session )
@@ -131,7 +134,7 @@ private:
     QSharedPointer< QIODevice > ioDeviceForReply_;
 };
 
-class AbstractManage: public QObject
+class JQLIBRARY_EXPORT AbstractManage: public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY( AbstractManage )
@@ -183,7 +186,7 @@ protected:
     QSet< Session * > availableSessions_;
 };
 
-class TcpServerManage: public AbstractManage
+class JQLIBRARY_EXPORT TcpServerManage: public AbstractManage
 {
     Q_OBJECT
     Q_DISABLE_COPY( TcpServerManage )
@@ -212,7 +215,7 @@ private:
 #ifndef QT_NO_SSL
 class SslServerHelper;
 
-class SslServerManage: public AbstractManage
+class JQLIBRARY_EXPORT SslServerManage: public AbstractManage
 {
     Q_OBJECT
     Q_DISABLE_COPY( SslServerManage )
@@ -247,7 +250,7 @@ private:
 };
 #endif
 
-class LocalServerManage: public AbstractManage
+class JQLIBRARY_EXPORT LocalServerManage: public AbstractManage
 {
     Q_OBJECT
     Q_DISABLE_COPY( LocalServerManage )

@@ -33,6 +33,9 @@
 #include <QNetworkInterface>
 #include <QNetworkAddressEntry>
 
+// JQLibrary lib import
+#include <JQDeclare>
+
 namespace JQNet
 {
 
@@ -48,7 +51,7 @@ bool tcpReachable(const QString &hostName, const quint16 &port, const int &timeo
 bool pingIp(const QHostAddress &hostAddress);
 #endif
 
-class HTTP
+class JQLIBRARY_EXPORT HTTP
 {
     Q_DISABLE_COPY( HTTP )
 
