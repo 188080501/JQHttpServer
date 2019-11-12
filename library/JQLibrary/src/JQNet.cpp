@@ -110,7 +110,7 @@ bool JQNet::HTTP::get(
     this->handle(
         reply,
         timeout,
-        [ & ](const QByteArray &data)
+        [ & ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
             target = data;
             eventLoop.exit( 1 );
@@ -132,7 +132,7 @@ bool JQNet::HTTP::get(
 
 void JQNet::HTTP::get(
         const QNetworkRequest &request,
-        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
@@ -166,7 +166,7 @@ bool JQNet::HTTP::deleteResource(
     this->handle(
         reply,
         timeout,
-        [ & ](const QByteArray &data)
+        [ & ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
             target = data;
             eventLoop.exit( 1 );
@@ -188,7 +188,7 @@ bool JQNet::HTTP::deleteResource(
 
 void JQNet::HTTP::deleteResource(
         const QNetworkRequest &request,
-        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
@@ -210,6 +210,7 @@ void JQNet::HTTP::deleteResource(
 bool JQNet::HTTP::post(
         const QNetworkRequest &request,
         const QByteArray &body,
+        QList< QNetworkReply::RawHeaderPair > &targetRawHeaderPairs,
         QByteArray &target,
         const int &timeout
     )
@@ -223,8 +224,9 @@ bool JQNet::HTTP::post(
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QByteArray &data)
+        [ &targetRawHeaderPairs, &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &rawHeaderPairs, const QByteArray &data)
         {
+            targetRawHeaderPairs = rawHeaderPairs;
             target = data;
             eventLoop.exit( true );
         },
@@ -259,7 +261,7 @@ bool JQNet::HTTP::post(
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QByteArray &data)
+        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
             target = data;
             eventLoop.exit( true );
@@ -282,7 +284,7 @@ bool JQNet::HTTP::post(
 void JQNet::HTTP::post(
         const QNetworkRequest &request,
         const QByteArray &body,
-        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
@@ -317,7 +319,7 @@ bool JQNet::HTTP::put(
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QByteArray &data)
+        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
             target = data;
             eventLoop.exit( true );
@@ -353,7 +355,7 @@ bool JQNet::HTTP::put(
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QByteArray &data)
+        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
             target = data;
             eventLoop.exit( true );
@@ -377,7 +379,7 @@ bool JQNet::HTTP::put(
 void JQNet::HTTP::put(
         const QNetworkRequest &request,
         const QByteArray &body,
-        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
@@ -413,7 +415,7 @@ bool JQNet::HTTP::patch(
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QByteArray &data)
+        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
             target = data;
             eventLoop.exit( true );
@@ -436,7 +438,7 @@ bool JQNet::HTTP::patch(
 void JQNet::HTTP::patch(
         const QNetworkRequest &request,
         const QByteArray &body,
-        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &)> &onError,
         const int &timeout
     )
@@ -499,11 +501,12 @@ QPair< bool, QByteArray > JQNet::HTTP::deleteResource(const QNetworkRequest &req
 QPair< bool, QByteArray > JQNet::HTTP::post(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
+    QList< QNetworkReply::RawHeaderPair > rawHeaderPairs;
     QByteArray buf;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
 
-    const auto &&flag = HTTP().post( networkRequest, body, buf, timeout );
+    const auto &&flag = HTTP().post( networkRequest, body, rawHeaderPairs, buf, timeout );
 
     return { flag, buf };
 }
@@ -511,11 +514,23 @@ QPair< bool, QByteArray > JQNet::HTTP::post(const QString &url, const QByteArray
 QPair< bool, QByteArray > JQNet::HTTP::post(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
     QByteArray buf;
+    QList< QNetworkReply::RawHeaderPair > rawHeaderPairs;
     HTTP http;
 
-    const auto &&flag = http.post( request, body, buf, timeout );
+    const auto &&flag = http.post( request, body, rawHeaderPairs, buf, timeout );
 
     return { flag, buf };
+}
+
+QPair< bool, QPair< QList< QNetworkReply::RawHeaderPair >, QByteArray > > JQNet::HTTP::post2(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
+{
+    QByteArray buf;
+    QList< QNetworkReply::RawHeaderPair > rawHeaderPairs;
+    HTTP http;
+
+    const auto &&flag = http.post( request, body, rawHeaderPairs, buf, timeout );
+
+    return { flag, { { }, buf } };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::post(const QNetworkRequest &request, const QSharedPointer<QHttpMultiPart> &multiPart, const int &timeout)
@@ -586,7 +601,7 @@ QPair< bool, QByteArray > JQNet::HTTP::patch(const QNetworkRequest &request, con
 
 void JQNet::HTTP::handle(
         QNetworkReply *reply, const int &timeout,
-        const std::function<void (const QByteArray &)> &onFinished,
+        const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QNetworkReply::NetworkError &, const QByteArray &data)> &onError,
         const std::function<void ()> &onTimeout
     )
@@ -621,10 +636,9 @@ void JQNet::HTTP::handle(
         }
 
         const auto &&acceptedData = reply->readAll();
+        const auto &rawHeaderPairs = reply->rawHeaderPairs();
 
-//        qDebug() << acceptedData;
-
-        onFinished( acceptedData );
+        onFinished( rawHeaderPairs, acceptedData );
     } );
 
 #ifndef QT_NO_SSL
@@ -648,8 +662,6 @@ void JQNet::HTTP::handle(
             timer->deleteLater();
         }
         const auto &&acceptedData = reply->readAll();
-
-//        qDebug() << acceptedData;
 
         onError( code, acceptedData );
     } );
