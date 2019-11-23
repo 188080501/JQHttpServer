@@ -1025,9 +1025,11 @@ bool JQHttpServer::SslServerManage::listen(
     sslConfiguration_->setProtocol( QSsl::TlsV1_2 );
     sslConfiguration_->setCaCertificates( caCertificates );
 
+#ifndef QT_NO_DEBUG
     qDebug() << "sslCertificate:" << sslCertificate;
     qDebug() << "sslKey:" << sslKey;
     qDebug() << "caCertificates:" << caCertificates;
+#endif
 
     return this->begin();
 }
