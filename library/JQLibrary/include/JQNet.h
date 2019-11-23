@@ -73,7 +73,7 @@ public:
     void get(
             const QNetworkRequest &request,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -86,7 +86,7 @@ public:
     void deleteResource(
             const QNetworkRequest &request,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -109,7 +109,7 @@ public:
             const QNetworkRequest &request,
             const QByteArray &body,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -131,7 +131,7 @@ public:
             const QNetworkRequest &request,
             const QByteArray &body,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 
@@ -147,7 +147,7 @@ public:
             const QNetworkRequest &request,
             const QByteArray &body,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const int &timeout = 30 * 1000
         );
 #endif
@@ -185,7 +185,7 @@ private:
     void handle(
             QNetworkReply *reply, const int &timeout,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
-            const std::function< void(const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
+            const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const std::function< void() > &onTimeout
         );
 
