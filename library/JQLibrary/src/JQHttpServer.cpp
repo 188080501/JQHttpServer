@@ -180,6 +180,48 @@ JQHttpServer::Session::~Session()
     }
 }
 
+QString JQHttpServer::Session::requestSource() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "requestSource", { } )
+
+    return requestSource_;
+}
+
+QString JQHttpServer::Session::requestMethod() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "requestMethod", { } )
+
+    return requestMethod_;
+}
+
+QString JQHttpServer::Session::requestUrl() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "requestUrl", { } )
+
+    return requestUrl_;
+}
+
+QString JQHttpServer::Session::requestCrlf() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "requestCrlf", { } )
+
+    return requestCrlf_;
+}
+
+QMap< QString, QString > JQHttpServer::Session::requestHeader() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "requestHeader", { } )
+
+    return requestHeader_;
+}
+
+QByteArray JQHttpServer::Session::requestBody() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "requestBody", { } )
+
+    return requestBody_;
+}
+
 QString JQHttpServer::Session::requestUrlPath() const
 {
     JQHTTPSERVER_SESSION_PROTECTION( "requestUrlPath", { } );

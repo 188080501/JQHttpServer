@@ -69,17 +69,17 @@ public:
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
-    inline QString requestSource() const { return requestSource_; }
+    QString requestSource() const;
 
-    inline QString requestMethod() const { return requestMethod_; }
+    QString requestMethod() const;
 
-    inline QString requestUrl() const { return requestUrl_; }
+    QString requestUrl() const;
 
-    inline QString requestCrlf() const { return requestCrlf_; }
+    QString requestCrlf() const;
 
-    inline QMap< QString, QString > requestHeader() const { return requestHeader_; }
+    QMap< QString, QString > requestHeader() const;
 
-    inline QByteArray requestBody() const { return requestBody_; }
+    QByteArray requestBody() const;
 
     QString requestUrlPath() const;
 
