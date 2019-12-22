@@ -98,6 +98,8 @@ public slots:
 
     void replyFile(const QString &filePath, const int &httpStatusCode = 200);
 
+    void replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode = 200);
+
     void replyImage(const QImage &image, const int &httpStatusCode = 200);
 
     void replyImage(const QString &imageFilePath, const int &httpStatusCode = 200);

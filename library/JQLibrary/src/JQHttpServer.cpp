@@ -224,7 +224,7 @@ QByteArray JQHttpServer::Session::requestBody() const
 
 QString JQHttpServer::Session::requestUrlPath() const
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "requestUrlPath", { } );
+    JQHTTPSERVER_SESSION_PROTECTION( "requestUrlPath", { } )
 
     QString result;
     const auto indexForQueryStart = requestUrl_.indexOf( "?" );
@@ -304,7 +304,7 @@ QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
 
 void JQHttpServer::Session::replyText(const QString &replyData, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyText" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyText" )
 
     if ( alreadyReply_ )
     {
@@ -340,7 +340,7 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
 
 void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyRedirects" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyRedirects" )
 
     if ( alreadyReply_ )
     {
@@ -378,7 +378,7 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
 
 void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonObject" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonObject" )
 
     if ( alreadyReply_ )
     {
@@ -415,7 +415,7 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
 
 void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonArray" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonArray" )
 
     if ( alreadyReply_ )
     {
@@ -452,7 +452,7 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
 
 void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyFile" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyFile" )
 
     if ( alreadyReply_ )
     {
@@ -496,9 +496,58 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
     ioDevice_->write( data );
 }
 
+void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode)
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "replyFile" )
+
+    if ( alreadyReply_ )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: already reply";
+        return;
+    }
+
+    if ( QThread::currentThread() != this->thread() )
+    {
+        QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, fileName ), Q_ARG( QByteArray, fileData ), Q_ARG( int, httpStatusCode ) );
+        return;
+    }
+
+    alreadyReply_ = true;
+
+    if ( ioDevice_.isNull() )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: error1";
+        this->deleteLater();
+        return;
+    }
+
+    auto buffer = new QBuffer;
+    buffer->setData( fileData );
+
+    if ( !buffer->open( QIODevice::ReadWrite ) )
+    {
+        qDebug() << "JQHttpServer::Session::replyFile: open buffer error";
+        delete buffer;
+        this->deleteLater();
+        return;
+    }
+
+    ioDeviceForReply_.reset( buffer );
+    ioDeviceForReply_->seek( 0 );
+
+    const auto &&data = replyFileFormat.arg(
+                QString::number( httpStatusCode ),
+                fileName,
+                QString::number( fileData.size() )
+            ).toUtf8();
+
+    waitWrittenByteCount_ = data.size() + fileData.size();
+    ioDevice_->write( data );
+}
+
 void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" )
 
     if ( alreadyReply_ )
     {
@@ -553,7 +602,7 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
 
 void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" )
 
     if ( alreadyReply_ )
     {
@@ -601,7 +650,7 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
 
 void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyBytes" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyBytes" )
 
     if (QThread::currentThread() != this->thread())
     {
@@ -626,7 +675,7 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
     auto buffer = new QBuffer;
     buffer->setData(bytes);
 
-    if (!buffer->open(QIODevice::ReadWrite))
+    if ( !buffer->open( QIODevice::ReadWrite ) )
     {
         qDebug() << "JQHttpServer::Session::replyBytes: open buffer error";
         delete buffer;
@@ -648,7 +697,7 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
 
 void JQHttpServer::Session::replyOptions()
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyOptions" );
+    JQHTTPSERVER_SESSION_PROTECTION( "replyOptions" )
 
     if ( alreadyReply_ )
     {
