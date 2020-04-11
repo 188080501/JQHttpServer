@@ -29,13 +29,28 @@
 #   include "JQFoundation.h"
 #endif
 
-QNetworkAddressEntry JQNet::getNetworkAddressEntry()
+QNetworkAddressEntry JQNet::getFirstNetworkAddressEntry()
 {
-    return getNetworkAddressEntryWithNetworkInterface().first;
+    auto list = JQNet::getNetworkAddressEntryAndInterface();
+
+    if ( list.isEmpty() ) { return { }; }
+
+    return list.first().first;
 }
 
-QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWithNetworkInterface(const bool &ridVm)
+QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getFirstNetworkAddressEntryAndInterface(const bool &ridVm)
 {
+    auto list = JQNet::getNetworkAddressEntryAndInterface( ridVm );
+
+    if ( list.isEmpty() ) { return { }; }
+
+    return list.first();
+}
+
+QList< QPair< QNetworkAddressEntry, QNetworkInterface > > JQNet::getNetworkAddressEntryAndInterface(const bool &ridVm)
+{
+    QList< QPair< QNetworkAddressEntry, QNetworkInterface > > result;
+
     for ( const auto &interface: static_cast< const QList< QNetworkInterface > >( QNetworkInterface::allInterfaces() ) )
     {
         if ( interface.flags() != ( QNetworkInterface::IsUp |
@@ -49,12 +64,12 @@ QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getNetworkAddressEntryWi
         {
             if ( entry.ip().toIPv4Address() )
             {
-                return { entry, interface };
+                result.push_back( { entry, interface } );
             }
         }
     }
 
-    return { };
+    return result;
 }
 
 QString JQNet::getHostName()
@@ -77,21 +92,19 @@ bool JQNet::tcpReachable(const QString &hostName, const quint16 &port, const int
 }
 
 #ifdef JQFOUNDATION_LIB
-bool JQNet::pingIp(const QHostAddress &hostAddress)
+bool JQNet::pingReachable(const QString &QString)
 {
-//    qDebug() << "NetworkManage::pingIp:" << hostAddress.toString();
-
     QPair< int, QByteArray > pingResult = { -1, { } };
 
 #ifdef Q_OS_MAC
-    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-c1", "-W300", hostAddress.toString() } );
+    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-c1", "-W300", QString } );
 #endif
 
 #ifdef Q_OS_WIN
-    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-n", "1", "-w", "300", hostAddress.toString() } );
+    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-n", "1", "-w", "300", QString } );
 #endif
 
-    return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( hostAddress.toString().toUtf8() ) > 1 );
+    return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( QString.toUtf8() ) > 1 );
 }
 #endif
 

@@ -39,16 +39,18 @@
 namespace JQNet
 {
 
-QNetworkAddressEntry getNetworkAddressEntry();
+QNetworkAddressEntry getFirstNetworkAddressEntry();
 
-QPair< QNetworkAddressEntry, QNetworkInterface > getNetworkAddressEntryWithNetworkInterface(const bool &ridVm = true);
+QPair< QNetworkAddressEntry, QNetworkInterface > getFirstNetworkAddressEntryAndInterface(const bool &ridVm = true);
+
+QList< QPair< QNetworkAddressEntry, QNetworkInterface > > getNetworkAddressEntryAndInterface(const bool &ridVm = true);
 
 QString getHostName();
 
 bool tcpReachable(const QString &hostName, const quint16 &port, const int &timeout = 5000);
 
 #ifdef JQFOUNDATION_LIB
-bool pingIp(const QHostAddress &hostAddress);
+bool pingReachable(const QString &QString);
 #endif
 
 class JQLIBRARY_EXPORT HTTP
