@@ -92,19 +92,19 @@ bool JQNet::tcpReachable(const QString &hostName, const quint16 &port, const int
 }
 
 #ifdef JQFOUNDATION_LIB
-bool JQNet::pingReachable(const QString &QString)
+bool JQNet::pingReachable(const QString &address, const int &timeout)
 {
     QPair< int, QByteArray > pingResult = { -1, { } };
 
 #ifdef Q_OS_MAC
-    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-c1", "-W300", QString } );
+    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-c1", QString( "-W%1" ).arg( timeout ), address } );
 #endif
 
 #ifdef Q_OS_WIN
-    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-n", "1", "-w", "300", QString } );
+    pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-n", "1", "-w", QString::number( timeout ), address } );
 #endif
 
-    return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( QString.toUtf8() ) > 1 );
+    return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( address.toUtf8() ) > 1 );
 }
 #endif
 

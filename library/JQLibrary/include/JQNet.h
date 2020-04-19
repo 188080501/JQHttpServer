@@ -50,7 +50,7 @@ QString getHostName();
 bool tcpReachable(const QString &hostName, const quint16 &port, const int &timeout = 5000);
 
 #ifdef JQFOUNDATION_LIB
-bool pingReachable(const QString &QString);
+bool pingReachable(const QString &address, const int &timeout = 300);
 #endif
 
 class JQLIBRARY_EXPORT HTTP
