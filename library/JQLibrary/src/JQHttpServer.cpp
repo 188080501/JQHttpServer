@@ -114,8 +114,6 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
     ioDevice_( tcpSocket ),
     timerForClose_( new QTimer )
 {
-    timerForClose_->setInterval( 30 * 1000 );
-
     if ( qobject_cast< QAbstractSocket * >( tcpSocket ) )
     {
         requestSource_ = ( qobject_cast< QAbstractSocket * >( tcpSocket ) )->peerAddress().toString().replace( "::ffff:", "" );
@@ -168,6 +166,9 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
 
         timerForClose_->start();
     } );
+
+    timerForClose_->setInterval( 30 * 1000 );
+    timerForClose_->start();
 
     connect( timerForClose_.data(), &QTimer::timeout, this, &QObject::deleteLater );
 }
