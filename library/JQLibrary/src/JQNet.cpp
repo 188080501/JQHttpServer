@@ -120,6 +120,8 @@ bool JQNet::HTTP::get(
     auto reply = manage_.get( request );
     bool failFlag = false;
 
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
+
     this->handle(
         reply,
         timeout,
@@ -175,6 +177,8 @@ bool JQNet::HTTP::deleteResource(
     QEventLoop eventLoop;
     auto reply = manage_.deleteResource( request );
     bool failFlag = false;
+
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
@@ -234,6 +238,8 @@ bool JQNet::HTTP::post(
     auto reply = manage_.post( request, body );
     bool failFlag = false;
 
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
+
     this->handle(
         reply,
         timeout,
@@ -271,6 +277,8 @@ bool JQNet::HTTP::post(
     QEventLoop eventLoop;
     auto reply = manage_.post( request, multiPart.data() );
     bool failFlag = false;
+
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
@@ -330,6 +338,8 @@ bool JQNet::HTTP::put(
     auto reply = manage_.put( request, body );
     bool failFlag = false;
 
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
+
     this->handle(
         reply,
         timeout,
@@ -365,6 +375,8 @@ bool JQNet::HTTP::put(
     QEventLoop eventLoop;
     auto reply = manage_.put( request, multiPart.data() );
     bool failFlag = false;
+
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
@@ -424,6 +436,8 @@ bool JQNet::HTTP::patch(
     QEventLoop eventLoop;
     auto reply = manage_.sendCustomRequest( request, "PATCH", body );
     bool failFlag = false;
+
+    QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
@@ -613,7 +627,8 @@ QPair< bool, QByteArray > JQNet::HTTP::patch(const QNetworkRequest &request, con
 #endif
 
 void JQNet::HTTP::handle(
-        QNetworkReply *reply, const int &timeout,
+        QNetworkReply *reply,
+        const int &timeout,
         const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &)> &onFinished,
         const std::function<void (const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)> &onError,
         const std::function<void ()> &onTimeout

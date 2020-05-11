@@ -185,7 +185,8 @@ public:
 
 private:
     void handle(
-            QNetworkReply *reply, const int &timeout,
+            QNetworkReply *reply,
+            const int &timeout,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const std::function< void() > &onTimeout
