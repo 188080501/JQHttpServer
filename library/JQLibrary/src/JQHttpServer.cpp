@@ -1114,7 +1114,7 @@ bool JQHttpServer::SslServerManage::listen(
     sslConfiguration_->setPeerVerifyMode( QSslSocket::VerifyNone );
     sslConfiguration_->setLocalCertificate( sslCertificate );
     sslConfiguration_->setPrivateKey( sslKey );
-    sslConfiguration_->setProtocol( QSsl::TlsV1_2 );
+    sslConfiguration_->setProtocol( QSsl::TlsV1_1OrLater );
     sslConfiguration_->setCaCertificates( caCertificates );
 
 #ifndef QT_NO_DEBUG
