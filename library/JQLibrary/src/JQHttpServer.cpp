@@ -743,7 +743,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
                 // 没有获取到 method 但是缓冲区内已经有了数据，这可能是一个无效的连接
                 if ( requestMethod_.isEmpty() && ( buffer_.size() > 4 ) )
                 {
-                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error0";
+//                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error0";
                     this->deleteLater();
                     return;
                 }
