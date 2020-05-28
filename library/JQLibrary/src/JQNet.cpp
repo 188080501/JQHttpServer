@@ -23,6 +23,7 @@
 #include <QUrl>
 #include <QHostInfo>
 #include <QTcpSocket>
+#include <QCoreApplication>
 
 // JQLibrary lib import
 #ifdef JQFOUNDATION_LIB
