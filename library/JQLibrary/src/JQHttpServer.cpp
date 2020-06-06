@@ -110,34 +110,34 @@ static QString replyOptionsFormat(
     );
 
 // Session
+QAtomicInt JQHttpServer::Session::remainSession_ = 0;
+
 JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
     ioDevice_( tcpSocket ),
-    timerForClose_( new QTimer )
+    autoCloseTimer_( new QTimer )
 {
+    ++remainSession_;
+//    qDebug() << "remainSession:" << remainSession_;
+
     if ( qobject_cast< QAbstractSocket * >( tcpSocket ) )
     {
-        requestSource_ = ( qobject_cast< QAbstractSocket * >( tcpSocket ) )->peerAddress().toString().replace( "::ffff:", "" );
+        requestSourceIp_ = ( qobject_cast< QAbstractSocket * >( tcpSocket ) )->peerAddress().toString().replace( "::ffff:", "" );
     }
 
     connect( ioDevice_.data(), &QIODevice::readyRead, [ this ]()
     {
-        if ( this->timerForClose_->isActive() )
-        {
-            timerForClose_->stop();
-        }
+        autoCloseTimer_->stop();
 
-        const auto &&data = this->ioDevice_->readAll();
-//        qDebug() << data;
-
-        this->buffer_.append( data );
-
+        this->receiveBuffer_.append( this->ioDevice_->readAll() );
         this->inspectionBufferSetup1();
 
-        timerForClose_->start();
+        autoCloseTimer_->start();
     } );
 
     connect( ioDevice_.data(), &QIODevice::bytesWritten, [ this ](const qint64 &bytes)
     {
+        autoCloseTimer_->stop();
+
         this->waitWrittenByteCount_ -= bytes;
 
         if ( this->waitWrittenByteCount_ == 0 )
@@ -159,33 +159,32 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
             }
         }
 
-        if ( this->timerForClose_->isActive() )
-        {
-            timerForClose_->stop();
-        }
-
-        timerForClose_->start();
+        autoCloseTimer_->start();
     } );
 
-    timerForClose_->setInterval( 30 * 1000 );
-    timerForClose_->start();
+    autoCloseTimer_->setInterval( 30 * 1000 );
+    autoCloseTimer_->setSingleShot( true );
+    autoCloseTimer_->start();
 
-    connect( timerForClose_.data(), &QTimer::timeout, this, &QObject::deleteLater );
+    connect( autoCloseTimer_.data(), &QTimer::timeout, this, &QObject::deleteLater );
 }
 
 JQHttpServer::Session::~Session()
 {
+    --remainSession_;
+//    qDebug() << "remainSession:" << remainSession_;
+
     if ( !ioDevice_.isNull() )
     {
         delete ioDevice_.data();
     }
 }
 
-QString JQHttpServer::Session::requestSource() const
+QString JQHttpServer::Session::requestSourceIp() const
 {
     JQHTTPSERVER_SESSION_PROTECTION( "requestSource", { } )
 
-    return requestSource_;
+    return requestSourceIp_;
 }
 
 QString JQHttpServer::Session::requestMethod() const
@@ -735,13 +734,13 @@ void JQHttpServer::Session::inspectionBufferSetup1()
         {
             static QByteArray splitFlag( "\r\n" );
 
-            auto splitFlagIndex = buffer_.indexOf( splitFlag );
+            auto splitFlagIndex = receiveBuffer_.indexOf( splitFlag );
 
             // 没有获取到分割标记，意味着数据不全
             if ( splitFlagIndex == -1 )
             {
                 // 没有获取到 method 但是缓冲区内已经有了数据，这可能是一个无效的连接
-                if ( requestMethod_.isEmpty() && ( buffer_.size() > 4 ) )
+                if ( requestMethod_.isEmpty() && ( receiveBuffer_.size() > 4 ) )
                 {
 //                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error0";
                     this->deleteLater();
@@ -762,8 +761,8 @@ void JQHttpServer::Session::inspectionBufferSetup1()
             // 如果没有获取到 method 则先尝试分析 method
             if ( requestMethod_.isEmpty() )
             {
-                auto requestLineDatas = buffer_.mid( 0, splitFlagIndex ).split( ' ' );
-                buffer_.remove( 0, splitFlagIndex + 2 );
+                auto requestLineDatas = receiveBuffer_.mid( 0, splitFlagIndex ).split( ' ' );
+                receiveBuffer_.remove( 0, splitFlagIndex + 2 );
 
                 if ( requestLineDatas.size() != 3 )
                 {
@@ -788,22 +787,22 @@ void JQHttpServer::Session::inspectionBufferSetup1()
             }
             else if ( splitFlagIndex == 0 )
             {
-                buffer_.remove( 0, 2 );
+                receiveBuffer_.remove( 0, 2 );
 
 //                qDebug() << buffer_;
                 headerAcceptedFinish_ = true;
 
                 if ( ( requestMethod_.toUpper() == "GET" ) ||
                      ( requestMethod_.toUpper() == "OPTIONS" ) ||
-                     ( ( requestMethod_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) ||
-                     ( ( requestMethod_.toUpper() == "PUT" ) && ( ( contentLength_ > 0 ) ? ( !buffer_.isEmpty() ) : ( true ) ) ) )
+                     ( ( requestMethod_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !receiveBuffer_.isEmpty() ) : ( true ) ) ) ||
+                     ( ( requestMethod_.toUpper() == "PUT" ) && ( ( contentLength_ > 0 ) ? ( !receiveBuffer_.isEmpty() ) : ( true ) ) ) )
                 {
                     this->inspectionBufferSetup2();
                 }
             }
             else
             {
-                auto index = buffer_.indexOf( ':' );
+                auto index = receiveBuffer_.indexOf( ':' );
 
                 if ( index <= 0 )
                 {
@@ -812,8 +811,8 @@ void JQHttpServer::Session::inspectionBufferSetup1()
                     return;
                 }
 
-                auto headerData = buffer_.mid( 0, splitFlagIndex );
-                buffer_.remove( 0, splitFlagIndex + 2 );
+                auto headerData = receiveBuffer_.mid( 0, splitFlagIndex );
+                receiveBuffer_.remove( 0, splitFlagIndex + 2 );
 
                 const auto &&key = headerData.mid( 0, index );
                 auto value = headerData.mid( index + 1 );
@@ -840,8 +839,8 @@ void JQHttpServer::Session::inspectionBufferSetup1()
 
 void JQHttpServer::Session::inspectionBufferSetup2()
 {
-    requestBody_ += buffer_;
-    buffer_.clear();
+    requestBody_ += receiveBuffer_;
+    receiveBuffer_.clear();
 
 //    qDebug() << requestBody_.size() << contentLength_;
 
@@ -875,7 +874,7 @@ JQHttpServer::AbstractManage::~AbstractManage()
     this->stopHandleThread();
 }
 
-bool JQHttpServer::AbstractManage::begin()
+bool JQHttpServer::AbstractManage::initialize()
 {
     if ( QThread::currentThread() != this->thread() )
     {
@@ -892,7 +891,7 @@ bool JQHttpServer::AbstractManage::begin()
     return this->startServerThread();
 }
 
-void JQHttpServer::AbstractManage::close()
+void JQHttpServer::AbstractManage::deinitialize()
 {
     if ( !this->isRunning() )
     {
@@ -981,7 +980,7 @@ JQHttpServer::TcpServerManage::~TcpServerManage()
 {
     if ( this->isRunning() )
     {
-        this->close();
+        this->deinitialize();
     }
 }
 
@@ -990,7 +989,7 @@ bool JQHttpServer::TcpServerManage::listen(const QHostAddress &address, const qu
     listenAddress_ = address;
     listenPort_ = port;
 
-    return this->begin();
+    return this->initialize();
 }
 
 bool JQHttpServer::TcpServerManage::isRunning()
@@ -1065,7 +1064,7 @@ JQHttpServer::SslServerManage::~SslServerManage()
 {
     if ( this->isRunning() )
     {
-        this->close();
+        this->deinitialize();
     }
 }
 
@@ -1123,7 +1122,7 @@ bool JQHttpServer::SslServerManage::listen(
     qDebug() << "caCertificates:" << caCertificates;
 #endif
 
-    return this->begin();
+    return this->initialize();
 }
 
 bool JQHttpServer::SslServerManage::isRunning()
@@ -1203,7 +1202,7 @@ JQHttpServer::LocalServerManage::~LocalServerManage()
 {
     if ( this->isRunning() )
     {
-        this->close();
+        this->deinitialize();
     }
 }
 
@@ -1211,7 +1210,7 @@ bool JQHttpServer::LocalServerManage::listen(const QString &name)
 {
     listenName_ = name;
 
-    return this->begin();
+    return this->initialize();
 }
 
 bool JQHttpServer::LocalServerManage::isRunning()

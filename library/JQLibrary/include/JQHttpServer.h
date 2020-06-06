@@ -69,7 +69,7 @@ public:
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
-    QString requestSource() const;
+    QString requestSourceIp() const;
 
     QString requestMethod() const;
 
@@ -114,13 +114,15 @@ private:
     void inspectionBufferSetup2();
 
 private:
+    static QAtomicInt remainSession_;
+
     QPointer< QIODevice > ioDevice_;
     std::function< void(const QPointer< Session > &) > handleAcceptedCallback_;
-    QSharedPointer< QTimer > timerForClose_;
+    QSharedPointer< QTimer > autoCloseTimer_;
 
-    QByteArray buffer_;
+    QByteArray receiveBuffer_;
 
-    QString requestSource_;
+    QString requestSourceIp_;
     QString requestMethod_;
     QString requestUrl_;
     QString requestCrlf_;
@@ -155,9 +157,9 @@ public:
     virtual bool isRunning() = 0;
 
 protected Q_SLOTS:
-    bool begin();
+    bool initialize();
 
-    void close();
+    void deinitialize();
 
 protected:
     virtual bool onStart() = 0;
