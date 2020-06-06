@@ -97,12 +97,12 @@ bool JQNet::pingReachable(const QString &address, const int &timeout)
 {
     QPair< int, QByteArray > pingResult = { -1, { } };
 
-#ifdef Q_OS_MAC
+#if ( defined Q_OS_MAC )
     pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-c1", QString( "-W%1" ).arg( timeout ), address } );
-#endif
-
-#ifdef Q_OS_WIN
+#elif ( defined Q_OS_WIN )
     pingResult = JQFoundation::startProcessAndReadOutput( "ping", { "-n", "1", "-w", QString::number( timeout ), address } );
+#else
+    Q_UNUSED( timeout )
 #endif
 
     return ( pingResult.first == 0 ) && ( pingResult.second.size() > 20 ) && ( pingResult.second.count( address.toUtf8() ) > 1 );
