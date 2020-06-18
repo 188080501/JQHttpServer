@@ -87,6 +87,10 @@ public:
 
     QMap< QString, QString > requestUrlQuery() const;
 
+    int replyHttpCode() const;
+
+    qint64 replyBodySize() const;
+
 public slots:
     void replyText(const QString &replyData, const int &httpStatusCode = 200);
 
@@ -126,13 +130,16 @@ private:
     QString requestMethod_;
     QString requestUrl_;
     QString requestCrlf_;
+    QByteArray requestBody_;
 
     QMap< QString, QString > requestHeader_;
-    bool headerAcceptedFinish_ = false;
+    bool headerAcceptedFinished_ = false;
+    bool contentAcceptedFinished_ = false;
     qint64 contentLength_ = -1;
-    bool alreadyReply_ = false;
 
-    QByteArray requestBody_;
+    int replyHttpCode_ = -1;
+    QByteArray replyBuffer_;
+    qint64 replyBodySize_ = -1;
 
     qint64 waitWrittenByteCount_ = 0;
     QSharedPointer< QIODevice > ioDeviceForReply_;

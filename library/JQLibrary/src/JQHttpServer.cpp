@@ -30,7 +30,7 @@
 #include <QFile>
 #include <QImage>
 #include <QBuffer>
-
+#include <QTimer>
 #include <QtConcurrent>
 
 #include <QTcpServer>
@@ -44,12 +44,28 @@
 #   include <QSslConfiguration>
 #endif
 
-#define JQHTTPSERVER_SESSION_PROTECTION( functionName, ... ) \
-    auto this_ = this; \
-    if ( !this_ || ( contentLength_ < -1 ) || ( waitWrittenByteCount_ < -1 ) ) \
-    { \
-        qDebug() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": current session this is null"; \
-        return __VA_ARGS__; \
+#define JQHTTPSERVER_SESSION_PROTECTION( functionName, ... )                        \
+    auto this_ = this;                                                              \
+    if ( !this_ || ( contentLength_ < -1 ) || ( waitWrittenByteCount_ < -1 ) )      \
+    {                                                                               \
+        qDebug().noquote() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": current session this is null"; \
+        return __VA_ARGS__;                                                         \
+    }
+
+#define JQHTTPSERVER_SESSION_REPLY_PROTECTION( functionName, ... )                  \
+    JQHTTPSERVER_SESSION_PROTECTION( functionName, __VA_ARGS__ )                    \
+    if ( ( replyHttpCode_ >= 0 ) && ( QThread::currentThread() != this->thread() ) ) \
+    {                                                                               \
+        qDebug().noquote() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": already reply"; \
+        return __VA_ARGS__;                                                         \
+    }
+
+#define JQHTTPSERVER_SESSION_REPLY_PROTECTION2( functionName, ... )                 \
+    if ( ioDevice_.isNull() )                                                       \
+    {                                                                               \
+        qDebug().noquote() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": error1"; \
+        this->deleteLater();                                                        \
+        return __VA_ARGS__;                                                         \
     }
 
 static QString replyTextFormat(
@@ -117,7 +133,7 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
     autoCloseTimer_( new QTimer )
 {
     ++remainSession_;
-//    qDebug() << "remainSession:" << remainSession_;
+//    qDebug() << "remainSession:" << remainSession_ << this;
 
     if ( qobject_cast< QAbstractSocket * >( tcpSocket ) )
     {
@@ -139,10 +155,9 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
         autoCloseTimer_->stop();
 
         this->waitWrittenByteCount_ -= bytes;
-
         if ( this->waitWrittenByteCount_ == 0 )
         {
-            this->deleteLater();
+            QTimer::singleShot( 1000, this, &QObject::deleteLater );
             return;
         }
 
@@ -172,7 +187,7 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
 JQHttpServer::Session::~Session()
 {
     --remainSession_;
-//    qDebug() << "remainSession:" << remainSession_;
+//    qDebug() << "remainSession:" << remainSession_ << this;
 
     if ( !ioDevice_.isNull() )
     {
@@ -302,35 +317,39 @@ QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
     return result;
 }
 
+int JQHttpServer::Session::replyHttpCode() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "replyHttpCode", -1 )
+
+    return replyHttpCode_;
+}
+
+qint64 JQHttpServer::Session::replyBodySize() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "replyBodySize", -1 )
+
+    return replyBodySize_;
+}
+
 void JQHttpServer::Session::replyText(const QString &replyData, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyText" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyText: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyText" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+        replyBodySize_ = replyData.toUtf8().size();
+
         QMetaObject::invokeMethod( this, "replyText", Qt::QueuedConnection, Q_ARG( QString, replyData ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
-
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyText: error1";
-        this->deleteLater();
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyText" )
 
     const auto &&data = replyTextFormat.arg(
                 QString::number( httpStatusCode ),
                 "text;charset=UTF-8",
-                QString::number( replyData.toUtf8().size() ),
+                QString::number( replyBodySize_ ),
                 replyData
             ).toUtf8();
 
@@ -340,35 +359,25 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
 
 void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyRedirects" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyRedirects: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyRedirects" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+
         QMetaObject::invokeMethod( this, "replyRedirects", Qt::QueuedConnection, Q_ARG( QUrl, targetUrl ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
-
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyRedirects: error1";
-        this->deleteLater();
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyRedirects" )
 
     const auto &&buffer = QString( "<head>\n<meta http-equiv=\"refresh\" content=\"0;URL=%1/\" />\n</head>" ).arg( targetUrl.toString() );
+    replyBodySize_ = buffer.toUtf8().size();
 
     const auto &&data = replyRedirectsFormat.arg(
                 QString::number( httpStatusCode ),
                 "text;charset=UTF-8",
-                QString::number( buffer.toUtf8().size() ),
+                QString::number( replyBodySize_ ),
                 buffer
             ).toUtf8();
 
@@ -378,102 +387,71 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
 
 void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonObject" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyJsonObject: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyJsonObject" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+        replyBuffer_ = QJsonDocument( jsonObject ).toJson( QJsonDocument::Compact );
+        replyBodySize_ = replyBuffer_.size();
+
         QMetaObject::invokeMethod( this, "replyJsonObject", Qt::QueuedConnection, Q_ARG( QJsonObject, jsonObject ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyJsonObject" )
 
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyJsonObject: error1";
-        this->deleteLater();
-        return;
-    }
-
-    const auto &&data = QJsonDocument( jsonObject ).toJson( QJsonDocument::Compact );
-    const auto &&data2 = replyTextFormat.arg(
+    const auto &&buffer = replyTextFormat.arg(
                 QString::number( httpStatusCode ),
                 "application/json;charset=UTF-8",
-                QString::number( data.size() ),
-                QString( data )
+                QString::number( replyBodySize_ ),
+                QString( replyBuffer_ )
             ).toUtf8();
 
-    waitWrittenByteCount_ = data2.size();
-    ioDevice_->write( data2 );
+    waitWrittenByteCount_ = buffer.size();
+    ioDevice_->write( buffer );
 }
 
 void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyJsonArray" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyJsonArray: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyJsonArray" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+        replyBuffer_ = QJsonDocument( jsonArray ).toJson( QJsonDocument::Compact );
+        replyBodySize_ = replyBuffer_.size();
+
         QMetaObject::invokeMethod( this, "replyJsonArray", Qt::QueuedConnection, Q_ARG( QJsonArray, jsonArray ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyJsonArray" )
 
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyJsonArray: error1";
-        this->deleteLater();
-        return;
-    }
-
-    const auto &&data = QJsonDocument( jsonArray ).toJson( QJsonDocument::Compact );
-    const auto &&data2 = replyTextFormat.arg(
+    const auto &&buffer = replyTextFormat.arg(
                 QString::number( httpStatusCode ),
                 "application/json;charset=UTF-8",
-                QString::number( data.size() ),
-                QString( data )
+                QString::number( replyBodySize_ ),
+                QString( replyBuffer_ )
             ).toUtf8();
 
-    waitWrittenByteCount_ = data2.size();
-    ioDevice_->write( data2 );
+    waitWrittenByteCount_ = buffer.size();
+    ioDevice_->write( buffer );
 }
 
 void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyFile" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyFile: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyFile" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+
         QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, filePath ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
-
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyFile: error1";
-        this->deleteLater();
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyFile" )
 
     ioDeviceForReply_.reset( new QFile( filePath ) );
     QPointer< QFile > file = ( qobject_cast< QFile * >( ioDeviceForReply_.data() ) );
@@ -486,10 +464,12 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
         return;
     }
 
+    replyBodySize_ = file->size();
+
     const auto &&data = replyFileFormat.arg(
                 QString::number( httpStatusCode ),
                 QFileInfo( filePath ).fileName(),
-                QString::number( file->size() )
+                QString::number( replyBodySize_ )
             ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
@@ -498,28 +478,17 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
 
 void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyFile" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyFile: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyFile" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+
         QMetaObject::invokeMethod( this, "replyFile", Qt::QueuedConnection, Q_ARG( QString, fileName ), Q_ARG( QByteArray, fileData ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
-
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyFile: error1";
-        this->deleteLater();
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyFile" )
 
     auto buffer = new QBuffer;
     buffer->setData( fileData );
@@ -535,10 +504,12 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
     ioDeviceForReply_.reset( buffer );
     ioDeviceForReply_->seek( 0 );
 
+    replyBodySize_ = fileData.size();
+
     const auto &&data = replyFileFormat.arg(
                 QString::number( httpStatusCode ),
                 fileName,
-                QString::number( fileData.size() )
+                QString::number( replyBodySize_ )
             ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + fileData.size();
@@ -547,28 +518,17 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
 
 void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyImage" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+
         QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
-
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyImage: error1";
-        this->deleteLater();
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyImage" )
 
     auto buffer = new QBuffer;
 
@@ -591,9 +551,11 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
     ioDeviceForReply_.reset( buffer );
     ioDeviceForReply_->seek( 0 );
 
+    replyBodySize_ = buffer->buffer().size();
+
     const auto &&data = replyImageFormat.arg(
                 QString::number( httpStatusCode ),
-                QString::number( buffer->buffer().size() )
+                QString::number( replyBodySize_ )
             ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
@@ -602,29 +564,17 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
 
 void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyImage" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyImage: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyImage" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = httpStatusCode;
+
         QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QString, imageFilePath ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
-    alreadyReply_ = true;
-
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyImage: error1";
-        this->deleteLater();
-        return;
-    }
-
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyImage" )
 
     auto buffer = new QFile( imageFilePath );
 
@@ -639,9 +589,11 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
     ioDeviceForReply_.reset( buffer );
     ioDeviceForReply_->seek( 0 );
 
+    replyBodySize_ = buffer->size();
+
     const auto &&data = replyImageFormat.arg(
                 QString::number( httpStatusCode ),
-                QString::number( buffer->size() )
+                QString::number( replyBodySize_ )
             ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->size();
@@ -650,30 +602,20 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
 
 void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyBytes" )
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyBytes" )
 
-    if (QThread::currentThread() != this->thread())
+    if ( QThread::currentThread() != this->thread( ))
     {
+        replyHttpCode_ = httpStatusCode;
+
         QMetaObject::invokeMethod(this, "replyBytes", Qt::QueuedConnection, Q_ARG(QByteArray, bytes), Q_ARG(int, httpStatusCode));
         return;
     }
 
-    if (alreadyReply_)
-    {
-        qDebug() << "JQHttpServer::Session::replyBytes: already reply";
-        return;
-    }
-    alreadyReply_ = true;
-
-    if (ioDevice_.isNull())
-    {
-        qDebug() << "JQHttpServer::Session::replyBytes: error1";
-        this->deleteLater();
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyBytes" )
 
     auto buffer = new QBuffer;
-    buffer->setData(bytes);
+    buffer->setData( bytes );
 
     if ( !buffer->open( QIODevice::ReadWrite ) )
     {
@@ -683,13 +625,15 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
         return;
     }
 
-    ioDeviceForReply_.reset(buffer);
-    ioDeviceForReply_->seek(0);
+    ioDeviceForReply_.reset( buffer );
+    ioDeviceForReply_->seek( 0 );
+
+    replyBodySize_ = buffer->buffer().size();
 
     const auto &&data = replyBytesFormat.arg(
-        QString::number(httpStatusCode),
-        QString::number(buffer->buffer().size())
-        ).toUtf8();
+                QString::number( httpStatusCode ),
+                QString::number( replyBodySize_ )
+            ).toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write(data);
@@ -697,38 +641,29 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
 
 void JQHttpServer::Session::replyOptions()
 {
-    JQHTTPSERVER_SESSION_PROTECTION( "replyOptions" )
-
-    if ( alreadyReply_ )
-    {
-        qDebug() << "JQHttpServer::Session::replyOptions: already reply";
-        return;
-    }
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyOptions" )
 
     if ( QThread::currentThread() != this->thread() )
     {
+        replyHttpCode_ = 200;
+
         QMetaObject::invokeMethod( this, "replyOptions", Qt::QueuedConnection );
         return;
     }
 
-    alreadyReply_ = true;
+    JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyOptions" )
 
-    if ( ioDevice_.isNull() )
-    {
-        qDebug() << "JQHttpServer::Session::replyOptions: error1";
-        this->deleteLater();
-        return;
-    }
+    replyBodySize_ = 0;
 
-    const auto &&data2 = replyOptionsFormat.toUtf8();
+    const auto &&buffer = replyOptionsFormat.toUtf8();
 
-    waitWrittenByteCount_ = data2.size();
-    ioDevice_->write( data2 );
+    waitWrittenByteCount_ = buffer.size();
+    ioDevice_->write( buffer );
 }
 
 void JQHttpServer::Session::inspectionBufferSetup1()
 {
-    if ( !headerAcceptedFinish_ )
+    if ( !headerAcceptedFinished_ )
     {
         forever
         {
@@ -753,7 +688,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
             // 如果未获取到 method 并且已经定位到了分割标记符，那么直接放弃这个连接
             if ( requestMethod_.isEmpty() && ( splitFlagIndex == 0 ) )
             {
-                qDebug() << "JQHttpServer::Session::inspectionBuffer: error1";
+//                qDebug() << "JQHttpServer::Session::inspectionBuffer: error1";
                 this->deleteLater();
                 return;
             }
@@ -766,7 +701,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
 
                 if ( requestLineDatas.size() != 3 )
                 {
-                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error2";
+//                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error2";
                     this->deleteLater();
                     return;
                 }
@@ -780,7 +715,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
                      ( requestMethod_ != "POST" ) &&
                      ( requestMethod_ != "PUT" ) )
                 {
-                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error3:" << requestMethod_;
+//                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error3:" << requestMethod_;
                     this->deleteLater();
                     return;
                 }
@@ -789,8 +724,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
             {
                 receiveBuffer_.remove( 0, 2 );
 
-//                qDebug() << buffer_;
-                headerAcceptedFinish_ = true;
+                headerAcceptedFinished_ = true;
 
                 if ( ( requestMethod_.toUpper() == "GET" ) ||
                      ( requestMethod_.toUpper() == "OPTIONS" ) ||
@@ -806,7 +740,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
 
                 if ( index <= 0 )
                 {
-                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error4";
+//                    qDebug() << "JQHttpServer::Session::inspectionBuffer: error4";
                     this->deleteLater();
                     return;
                 }
@@ -842,8 +776,6 @@ void JQHttpServer::Session::inspectionBufferSetup2()
     requestBody_ += receiveBuffer_;
     receiveBuffer_.clear();
 
-//    qDebug() << requestBody_.size() << contentLength_;
-
     if ( !handleAcceptedCallback_ )
     {
         qDebug() << "JQHttpServer::Session::inspectionBuffer: error4";
@@ -856,6 +788,12 @@ void JQHttpServer::Session::inspectionBufferSetup2()
         return;
     }
 
+    if ( contentAcceptedFinished_ )
+    {
+        return;
+    }
+
+    contentAcceptedFinished_ = true;
     handleAcceptedCallback_( this );
 }
 
@@ -957,7 +895,7 @@ void JQHttpServer::AbstractManage::newSession(const QPointer< Session > &session
     availableSessions_.insert( session.data() );
 }
 
-void JQHttpServer::AbstractManage::handleAccepted(const QPointer<Session> &session)
+void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &session)
 {
     QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
     {
@@ -1146,21 +1084,8 @@ bool JQHttpServer::SslServerManage::onStart()
 
         QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
         {
-//            qDebug() << "SslServerManage::encrypted";
             this->newSession( new Session( sslSocket ) );
         } );
-//        QObject::connect( sslSocket, &QSslSocket::modeChanged, [ this, sslSocket ](QSslSocket::SslMode mode)
-//        {
-//            qDebug() << "modeChanged" << mode;
-//        } );
-//        QObject::connect( sslSocket, (void(QSslSocket::*)(QAbstractSocket::SocketError))&QSslSocket::error, [ sslSocket ](QAbstractSocket::SocketError e)
-//        {
-//            qDebug() << e << sslSocket->errorString();
-//        } );
-//        QObject::connect( sslSocket, (void(QSslSocket::*)(const QList<QSslError> &))&QSslSocket::sslErrors, [ sslSocket ](const QList<QSslError> &e)
-//        {
-//            qDebug() << e;
-//        } );
 
         sslSocket->setSocketDescriptor( socketDescriptor );
         sslSocket->startServerEncryption();
