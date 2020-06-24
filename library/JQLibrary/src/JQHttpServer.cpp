@@ -788,6 +788,7 @@ void JQHttpServer::Session::onBytesWritten(const qint64 &written)
     this->waitWrittenByteCount_ -= written;
     if ( this->waitWrittenByteCount_ <= 0 )
     {
+        this->waitWrittenByteCount_ = 0;
         QTimer::singleShot( 1000, this, &QObject::deleteLater );
         return;
     }
@@ -1095,7 +1096,6 @@ bool JQHttpServer::SslServerManage::onStart()
 
         QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
         {
-            qDebug("encrypted");
             this->newSession( new Session( sslSocket ) );
         } );
 
