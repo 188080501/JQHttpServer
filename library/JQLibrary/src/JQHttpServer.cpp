@@ -99,7 +99,7 @@ static QString replyFileFormat(
 
 static QString replyImageFormat(
         "HTTP/1.1 %1\r\n"
-        "Content-Type: image\r\n"
+        "Content-Type: image/png\r\n"
         "Content-Length: %2\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Headers: Content-Type,X-Requested-With\r\n"
