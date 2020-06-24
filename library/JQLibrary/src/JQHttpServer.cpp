@@ -150,11 +150,13 @@ JQHttpServer::Session::Session(const QPointer< QIODevice > &socket):
         autoCloseTimer_->start();
     } );
 
+#ifndef QT_NO_SSL
     if ( qobject_cast< QSslSocket * >( socket ) )
     {
         connect( qobject_cast< QSslSocket * >( socket ), &QSslSocket::encryptedBytesWritten, std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
     }
     else
+#endif
     {
         connect( ioDevice_.data(), &QIODevice::bytesWritten, std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
     }
@@ -312,6 +314,17 @@ qint64 JQHttpServer::Session::replyBodySize() const
 
     return replyBodySize_;
 }
+
+#ifndef QT_NO_SSL
+QSslCertificate JQHttpServer::Session::peerCertificate() const
+{
+    JQHTTPSERVER_SESSION_PROTECTION( "peerCertificate", QSslCertificate() )
+
+    if ( !qobject_cast< QSslSocket * >( ioDevice_ ) ) { return QSslCertificate(); }
+
+    return qobject_cast< QSslSocket * >( ioDevice_ )->peerCertificate();
+}
+#endif
 
 void JQHttpServer::Session::replyText(const QString &replyData, const int &httpStatusCode)
 {
@@ -1060,7 +1073,8 @@ bool JQHttpServer::SslServerManage::listen(
     }
 
     sslConfiguration_.reset( new QSslConfiguration );
-    sslConfiguration_->setPeerVerifyMode( QSslSocket::VerifyNone );
+    sslConfiguration_->setPeerVerifyMode( QSslSocket::AutoVerifyPeer );
+    sslConfiguration_->setPeerVerifyDepth( 1 );
     sslConfiguration_->setLocalCertificate( sslCertificate );
     sslConfiguration_->setPrivateKey( sslKey );
     sslConfiguration_->setProtocol( QSsl::TlsV1_1OrLater );

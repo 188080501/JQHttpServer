@@ -39,6 +39,9 @@
 #include <QMutex>
 #include <QHostAddress>
 #include <QUrl>
+#ifndef QT_NO_SSL
+#   include <QSslCertificate>
+#endif
 
 // JQLibrary lib import
 #include <JQDeclare>
@@ -50,7 +53,6 @@ class QTimer;
 class QImage;
 class QTcpServer;
 class QLocalServer;
-class QSslCertificate;
 class QSslKey;
 class QSslConfiguration;
 
@@ -90,6 +92,10 @@ public:
     int replyHttpCode() const;
 
     qint64 replyBodySize() const;
+
+#ifndef QT_NO_SSL
+    QSslCertificate peerCertificate() const;
+#endif
 
 public slots:
     void replyText(const QString &replyData, const int &httpStatusCode = 200);
