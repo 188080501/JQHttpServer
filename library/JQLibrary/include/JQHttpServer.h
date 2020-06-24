@@ -41,6 +41,7 @@
 #include <QUrl>
 #ifndef QT_NO_SSL
 #   include <QSslCertificate>
+#   include <QSslSocket>
 #endif
 
 // JQLibrary lib import
@@ -249,7 +250,8 @@ public:
             const quint16 &port,
             const QString &crtFilePath,
             const QString &keyFilePath,
-            const QList< QPair< QString, bool > > &caFileList = { } // [ { filePath, isPem } ]
+            const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList = { }, // [ { filePath, format } ]
+            const QSslSocket::PeerVerifyMode &peerVerifyMode = QSslSocket::AutoVerifyPeer
         );
 
 private:

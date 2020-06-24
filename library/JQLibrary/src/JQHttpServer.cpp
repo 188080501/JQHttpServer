@@ -38,9 +38,7 @@
 #include <QLocalServer>
 #include <QLocalSocket>
 #ifndef QT_NO_SSL
-#   include <QSslSocket>
 #   include <QSslKey>
-#   include <QSslCertificate>
 #   include <QSslConfiguration>
 #endif
 
@@ -1036,7 +1034,8 @@ bool JQHttpServer::SslServerManage::listen(
         const quint16 &port,
         const QString &crtFilePath,
         const QString &keyFilePath,
-        const QList< QPair< QString, bool > > &caFileList
+        const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList,
+        const QSslSocket::PeerVerifyMode &peerVerifyMode
     )
 {
     listenAddress_ = address;
@@ -1069,22 +1068,16 @@ bool JQHttpServer::SslServerManage::listen(
             return false;
         }
 
-        caCertificates.push_back( QSslCertificate( fileForCa.readAll(), ( caFile.second ) ? ( QSsl::Pem ) : ( QSsl::Der ) ) );
+        caCertificates.push_back( QSslCertificate( fileForCa.readAll(), caFile.second ) );
     }
 
     sslConfiguration_.reset( new QSslConfiguration );
-    sslConfiguration_->setPeerVerifyMode( QSslSocket::AutoVerifyPeer );
+    sslConfiguration_->setPeerVerifyMode( peerVerifyMode );
     sslConfiguration_->setPeerVerifyDepth( 1 );
     sslConfiguration_->setLocalCertificate( sslCertificate );
     sslConfiguration_->setPrivateKey( sslKey );
     sslConfiguration_->setProtocol( QSsl::TlsV1_1OrLater );
     sslConfiguration_->setCaCertificates( caCertificates );
-
-#ifndef QT_NO_DEBUG
-    qDebug() << "sslCertificate:" << sslCertificate;
-    qDebug() << "sslKey:" << sslKey;
-    qDebug() << "caCertificates:" << caCertificates;
-#endif
 
     return this->initialize();
 }

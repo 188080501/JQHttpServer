@@ -675,6 +675,12 @@ void JQNet::HTTP::handle(
     {
         QObject::connect( reply, static_cast< void( QNetworkReply::* )( const QList< QSslError > & ) >( &QNetworkReply::sslErrors ), [ reply ](const QList< QSslError > &errors)
         {
+            if ( ( errors.size() == 1 ) && ( errors.first().error() == QSslError::UnableToGetLocalIssuerCertificate ) )
+            {
+                reply->ignoreSslErrors();
+                return;
+            }
+
             qDebug() << "HTTP::handle: ignoreSslErrors:" << errors;
             reply->ignoreSslErrors();
         } );

@@ -36,9 +36,9 @@ int main(int argc, char *argv[])
 //                    "xxx/__xxx_com.crt",
 //                    "xxx/__xxx_com.key",
 //                    {
-//                        { "xxx/__xxx_com.ca-bundle", true },
-//                        { "xxx/COMODO RSA Domain Validation Secure Server CA.cer", false },
-//                        { "xxx/COMODO RSA Certification Authority.cer", false }
+//                        { "xxx/__xxx_com.ca-bundle", QSsl::Pem },
+//                        { "xxx/COMODO RSA Certification Authority.crt", QSsl::Pem },
+//                        { "xxx/COMODO RSA Domain Validation Secure Server CA.cer", QSsl::Der }
 //                    }
 //                );
     return a.exec();
