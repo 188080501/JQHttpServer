@@ -128,16 +128,16 @@ static QString replyOptionsFormat(
 // Session
 QAtomicInt JQHttpServer::Session::remainSession_ = 0;
 
-JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
-    ioDevice_( tcpSocket ),
+JQHttpServer::Session::Session(const QPointer< QIODevice > &socket):
+    ioDevice_( socket ),
     autoCloseTimer_( new QTimer )
 {
     ++remainSession_;
 //    qDebug() << "remainSession:" << remainSession_ << this;
 
-    if ( qobject_cast< QAbstractSocket * >( tcpSocket ) )
+    if ( qobject_cast< QAbstractSocket * >( socket ) )
     {
-        requestSourceIp_ = ( qobject_cast< QAbstractSocket * >( tcpSocket ) )->peerAddress().toString().replace( "::ffff:", "" );
+        requestSourceIp_ = ( qobject_cast< QAbstractSocket * >( socket ) )->peerAddress().toString().replace( "::ffff:", "" );
     }
 
     connect( ioDevice_.data(), &QIODevice::readyRead, [ this ]()
@@ -150,32 +150,14 @@ JQHttpServer::Session::Session(const QPointer<QIODevice> &tcpSocket):
         autoCloseTimer_->start();
     } );
 
-    connect( ioDevice_.data(), &QIODevice::bytesWritten, [ this ](const qint64 &bytes)
+    if ( qobject_cast< QSslSocket * >( socket ) )
     {
-        autoCloseTimer_->stop();
-
-        this->waitWrittenByteCount_ -= bytes;
-        if ( this->waitWrittenByteCount_ == 0 )
-        {
-            QTimer::singleShot( 1000, this, &QObject::deleteLater );
-            return;
-        }
-
-        if ( !ioDeviceForReply_.isNull() )
-        {
-            if ( ioDeviceForReply_->atEnd() )
-            {
-                ioDeviceForReply_->deleteLater();
-                ioDeviceForReply_.clear();
-            }
-            else
-            {
-                ioDevice_->write( ioDeviceForReply_->read( 512 * 1024 ) );
-            }
-        }
-
-        autoCloseTimer_->start();
-    } );
+        connect( qobject_cast< QSslSocket * >( socket ), &QSslSocket::encryptedBytesWritten, std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
+    }
+    else
+    {
+        connect( ioDevice_.data(), &QIODevice::bytesWritten, std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
+    }
 
     autoCloseTimer_->setInterval( 30 * 1000 );
     autoCloseTimer_->setSingleShot( true );
@@ -797,6 +779,35 @@ void JQHttpServer::Session::inspectionBufferSetup2()
     handleAcceptedCallback_( this );
 }
 
+void JQHttpServer::Session::onBytesWritten(const qint64 &written)
+{
+    if ( this->waitWrittenByteCount_ < 0 ) { return; }
+
+    autoCloseTimer_->stop();
+
+    this->waitWrittenByteCount_ -= written;
+    if ( this->waitWrittenByteCount_ <= 0 )
+    {
+        QTimer::singleShot( 1000, this, &QObject::deleteLater );
+        return;
+    }
+
+    if ( !ioDeviceForReply_.isNull() )
+    {
+        if ( ioDeviceForReply_->atEnd() )
+        {
+            ioDeviceForReply_->deleteLater();
+            ioDeviceForReply_.clear();
+        }
+        else
+        {
+            ioDevice_->write( ioDeviceForReply_->read( 512 * 1024 ) );
+        }
+    }
+
+    autoCloseTimer_->start();
+}
+
 // AbstractManage
 JQHttpServer::AbstractManage::AbstractManage(const int &handleMaxThreadCount)
 {
@@ -1084,6 +1095,7 @@ bool JQHttpServer::SslServerManage::onStart()
 
         QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
         {
+            qDebug("encrypted");
             this->newSession( new Session( sslSocket ) );
         } );
 

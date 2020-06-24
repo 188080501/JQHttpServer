@@ -63,7 +63,7 @@ class JQLIBRARY_EXPORT Session: public QObject
     Q_DISABLE_COPY( Session )
 
 public:
-    Session( const QPointer< QIODevice > &tcpSocket );
+    Session( const QPointer< QIODevice > &socket );
 
     ~Session();
 
@@ -117,6 +117,8 @@ private:
 
     void inspectionBufferSetup2();
 
+    void onBytesWritten(const qint64 &written);
+
 private:
     static QAtomicInt remainSession_;
 
@@ -141,7 +143,7 @@ private:
     QByteArray replyBuffer_;
     qint64 replyBodySize_ = -1;
 
-    qint64 waitWrittenByteCount_ = 0;
+    qint64 waitWrittenByteCount_ = -1;
     QSharedPointer< QIODevice > ioDeviceForReply_;
 };
 
