@@ -72,6 +72,8 @@ public:
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
+    inline QPointer< QIODevice > ioDevice() { return ioDevice_; }
+
     QString requestSourceIp() const;
 
     QString requestMethod() const;

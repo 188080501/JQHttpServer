@@ -673,15 +673,9 @@ void JQNet::HTTP::handle(
 #ifndef QT_NO_SSL
     if ( reply->url().toString().toLower().startsWith( "https" ) )
     {
-        QObject::connect( reply, static_cast< void( QNetworkReply::* )( const QList< QSslError > & ) >( &QNetworkReply::sslErrors ), [ reply ](const QList< QSslError > &errors)
+        QObject::connect( reply, static_cast< void( QNetworkReply::* )( const QList< QSslError > & ) >( &QNetworkReply::sslErrors ), [ reply ](const QList< QSslError > & /*errors*/)
         {
-            if ( ( errors.size() == 1 ) && ( errors.first().error() == QSslError::UnableToGetLocalIssuerCertificate ) )
-            {
-                reply->ignoreSslErrors();
-                return;
-            }
-
-            qDebug() << "HTTP::handle: ignoreSslErrors:" << errors;
+//            qDebug() << "HTTP::handle: ignoreSslErrors:" << errors;
             reply->ignoreSslErrors();
         } );
     }
