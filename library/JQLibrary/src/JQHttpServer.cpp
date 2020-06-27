@@ -1097,6 +1097,8 @@ bool JQHttpServer::SslServerManage::onStart()
 
     tcpServer_->onIncomingConnectionCallback_ = [ this ](qintptr socketDescriptor)
     {
+//        qDebug() << "incomming";
+
         auto sslSocket = new QSslSocket;
 
         sslSocket->setSslConfiguration( *sslConfiguration_ );
@@ -1105,6 +1107,11 @@ bool JQHttpServer::SslServerManage::onStart()
         {
             this->newSession( new Session( sslSocket ) );
         } );
+
+//        QObject::connect( sslSocket, static_cast< void(QSslSocket::*)(const QList<QSslError> &errors) >(&QSslSocket::sslErrors), [](const QList<QSslError> &errors)
+//        {
+//            qDebug() << "sslErrors:" << errors;
+//        } );
 
         sslSocket->setSocketDescriptor( socketDescriptor );
         sslSocket->startServerEncryption();

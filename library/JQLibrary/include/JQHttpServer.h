@@ -253,7 +253,7 @@ public:
             const QString &crtFilePath,
             const QString &keyFilePath,
             const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList = { }, // [ { filePath, format } ]
-            const QSslSocket::PeerVerifyMode &peerVerifyMode = QSslSocket::AutoVerifyPeer
+            const QSslSocket::PeerVerifyMode &peerVerifyMode = QSslSocket::VerifyNone
         );
 
 private:
