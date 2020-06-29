@@ -33,7 +33,6 @@
 QNetworkAddressEntry JQNet::getFirstNetworkAddressEntry()
 {
     auto list = JQNet::getNetworkAddressEntryAndInterface();
-
     if ( list.isEmpty() ) { return { }; }
 
     return list.first().first;
@@ -42,7 +41,6 @@ QNetworkAddressEntry JQNet::getFirstNetworkAddressEntry()
 QPair< QNetworkAddressEntry, QNetworkInterface > JQNet::getFirstNetworkAddressEntryAndInterface(const bool &ridVm)
 {
     auto list = JQNet::getNetworkAddressEntryAndInterface( ridVm );
-
     if ( list.isEmpty() ) { return { }; }
 
     return list.first();
@@ -112,14 +110,14 @@ bool JQNet::pingReachable(const QString &address, const int &timeout)
 // HTTP
 bool JQNet::HTTP::get(
         const QNetworkRequest &request,
-        QByteArray &target, const int &timeout
+        QByteArray &receiveBuffer, const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.get( request );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
@@ -128,22 +126,22 @@ bool JQNet::HTTP::get(
         timeout,
         [ & ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( 1 );
         },
         [ & ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( 0 );
         },
         [ & ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( 0 );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 void JQNet::HTTP::get(
@@ -169,15 +167,15 @@ void JQNet::HTTP::get(
 
 bool JQNet::HTTP::deleteResource(
         const QNetworkRequest &request,
-        QByteArray &target,
+        QByteArray &receiveBuffer,
         const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.deleteResource( request );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
@@ -186,22 +184,22 @@ bool JQNet::HTTP::deleteResource(
         timeout,
         [ & ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( 1 );
         },
         [ & ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( 0 );
         },
         [ & ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( 0 );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 void JQNet::HTTP::deleteResource(
@@ -228,80 +226,80 @@ void JQNet::HTTP::deleteResource(
 bool JQNet::HTTP::post(
         const QNetworkRequest &request,
         const QByteArray &body,
-        QList< QNetworkReply::RawHeaderPair > &targetRawHeaderPairs,
-        QByteArray &target,
+        QList< QNetworkReply::RawHeaderPair > &receiveRawHeaderPairs,
+        QByteArray &receiveBuffer,
         const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.post( request, body );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
         timeout,
-        [ &targetRawHeaderPairs, &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &rawHeaderPairs, const QByteArray &data)
+        [ &receiveRawHeaderPairs, &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &rawHeaderPairs, const QByteArray &data)
         {
-            targetRawHeaderPairs = rawHeaderPairs;
-            target = data;
+            receiveRawHeaderPairs = rawHeaderPairs;
+            receiveBuffer = data;
             eventLoop.exit( true );
         },
-        [ &targetRawHeaderPairs, &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &rawHeaderPairs, const QNetworkReply::NetworkError &, const QByteArray &data)
+        [ &receiveRawHeaderPairs, &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &rawHeaderPairs, const QNetworkReply::NetworkError &, const QByteArray &data)
         {
-            targetRawHeaderPairs = rawHeaderPairs;
-            target = data;
+            receiveRawHeaderPairs = rawHeaderPairs;
+            receiveBuffer = data;
             eventLoop.exit( false );
         },
-        [ &failFlag, &eventLoop ]()
+        [ &isFail, &eventLoop ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( false );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 bool JQNet::HTTP::post(
         const QNetworkRequest &request,
         const QSharedPointer< QHttpMultiPart > &multiPart,
-        QByteArray &target,
+        QByteArray &receiveBuffer,
         const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.post( request, multiPart.data() );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( true );
         },
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( false );
         },
-        [ &failFlag, &eventLoop ]()
+        [ &isFail, &eventLoop ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( false );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 void JQNet::HTTP::post(
@@ -329,77 +327,77 @@ void JQNet::HTTP::post(
 bool JQNet::HTTP::put(
         const QNetworkRequest &request,
         const QByteArray &body,
-        QByteArray &target,
+        QByteArray &receiveBuffer,
         const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.put( request, body );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( true );
         },
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( false );
         },
-        [ &failFlag, &eventLoop ]()
+        [ &isFail, &eventLoop ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( false );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 bool JQNet::HTTP::put(
         const QNetworkRequest &request,
         const QSharedPointer< QHttpMultiPart > &multiPart,
-        QByteArray &target,
+        QByteArray &receiveBuffer,
         const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.put( request, multiPart.data() );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( true );
         },
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError & /*e*/, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError & /*e*/, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( false );
         },
-        [ &failFlag, &eventLoop ]()
+        [ &isFail, &eventLoop ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( false );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 void JQNet::HTTP::put(
@@ -428,39 +426,39 @@ void JQNet::HTTP::put(
 bool JQNet::HTTP::patch(
         const QNetworkRequest &request,
         const QByteArray &body,
-        QByteArray &target,
+        QByteArray &receiveBuffer,
         const int &timeout
     )
 {
-    target.clear();
+    receiveBuffer.clear();
 
     QEventLoop eventLoop;
     auto reply = manage_.sendCustomRequest( request, "PATCH", body );
-    bool failFlag = false;
+    bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
 
     this->handle(
         reply,
         timeout,
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( true );
         },
-        [ &target, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
+        [ &receiveBuffer, &eventLoop ](const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &, const QByteArray &data)
         {
-            target = data;
+            receiveBuffer = data;
             eventLoop.exit( false );
         },
-        [ &failFlag, &eventLoop ]()
+        [ &isFail, &eventLoop ]()
         {
-            failFlag = true;
+            isFail = true;
             eventLoop.exit( false );
         }
     );
 
-    return eventLoop.exec() && !failFlag;
+    return eventLoop.exec() && !isFail;
 }
 
 void JQNet::HTTP::patch(
@@ -489,141 +487,141 @@ void JQNet::HTTP::patch(
 QPair< bool, QByteArray > JQNet::HTTP::get(const QString &url, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
-    QByteArray buf;
+    QByteArray receiveBuffer;
 
-    const auto &&flag = HTTP().get( networkRequest, buf, timeout );
+    const auto &&isSucceed = HTTP().get( networkRequest, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::get(const QNetworkRequest &request, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     HTTP http;
 
-    const auto &&flag = http.get( request, buf, timeout );
+    const auto &&isSucceed = http.get( request, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::deleteResource(const QString &url, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
-    QByteArray buf;
+    QByteArray receiveBuffer;
 
-    const auto &&flag = HTTP().deleteResource( networkRequest, buf, timeout );
+    const auto &&isSucceed = HTTP().deleteResource( networkRequest, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::deleteResource(const QNetworkRequest &request, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     HTTP http;
 
-    const auto &&flag = http.deleteResource( request, buf, timeout );
+    const auto &&isSucceed = http.deleteResource( request, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::post(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QList< QNetworkReply::RawHeaderPair > rawHeaderPairs;
-    QByteArray buf;
+    QByteArray receiveBuffer;
 
-    networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
+    networkRequest.setRawHeader( "Content-Type", "application/json;charset=UTF-8" );
 
-    const auto &&flag = HTTP().post( networkRequest, body, rawHeaderPairs, buf, timeout );
+    const auto &&isSucceed = HTTP().post( networkRequest, body, rawHeaderPairs, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::post(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     QList< QNetworkReply::RawHeaderPair > rawHeaderPairs;
     HTTP http;
 
-    const auto &&flag = http.post( request, body, rawHeaderPairs, buf, timeout );
+    const auto &&isSucceed = http.post( request, body, rawHeaderPairs, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QPair< QList< QNetworkReply::RawHeaderPair >, QByteArray > > JQNet::HTTP::post2(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     QList< QNetworkReply::RawHeaderPair > rawHeaderPairs;
     HTTP http;
 
-    const auto &&flag = http.post( request, body, rawHeaderPairs, buf, timeout );
+    const auto &&isSucceed = http.post( request, body, rawHeaderPairs, receiveBuffer, timeout );
 
-    return { flag, { rawHeaderPairs, buf } };
+    return { isSucceed, { rawHeaderPairs, receiveBuffer } };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::post(const QNetworkRequest &request, const QSharedPointer<QHttpMultiPart> &multiPart, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     HTTP http;
 
-    const auto &&flag = http.post( request, multiPart, buf, timeout );
+    const auto &&isSucceed = http.post( request, multiPart, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::put(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
-    QByteArray buf;
+    QByteArray receiveBuffer;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
 
-    const auto &&flag = HTTP().put( networkRequest, body, buf, timeout );
+    const auto &&isSucceed = HTTP().put( networkRequest, body, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::put(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     HTTP http;
 
-    const auto &&flag = http.put( request, body, buf, timeout );
+    const auto &&isSucceed = http.put( request, body, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     HTTP http;
 
-    const auto &&flag = http.put( request, multiPart, buf, timeout );
+    const auto &&isSucceed = http.put( request, multiPart, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 #if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
 QPair< bool, QByteArray > JQNet::HTTP::patch(const QString &url, const QByteArray &body, const int &timeout)
 {
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
-    QByteArray buf;
+    QByteArray receiveBuffer;
 
     networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
 
-    const auto &&flag = HTTP().patch( networkRequest, body, buf, timeout );
+    const auto &&isSucceed = HTTP().patch( networkRequest, body, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 
 QPair< bool, QByteArray > JQNet::HTTP::patch(const QNetworkRequest &request, const QByteArray &body, const int &timeout)
 {
-    QByteArray buf;
+    QByteArray receiveBuffer;
     HTTP http;
 
-    const auto &&flag = http.patch( request, body, buf, timeout );
+    const auto &&isSucceed = http.patch( request, body, receiveBuffer, timeout );
 
-    return { flag, buf };
+    return { isSucceed, receiveBuffer };
 }
 #endif
 

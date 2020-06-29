@@ -68,7 +68,7 @@ public:
 
     bool get(
             const QNetworkRequest &request,
-            QByteArray &target,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
@@ -81,7 +81,7 @@ public:
 
     bool deleteResource(
             const QNetworkRequest &request,
-            QByteArray &target,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
@@ -95,15 +95,15 @@ public:
     bool post(
             const QNetworkRequest &request,
             const QByteArray &body,
-            QList< QNetworkReply::RawHeaderPair > &targetRawHeaderPairs,
-            QByteArray &target,
+            QList< QNetworkReply::RawHeaderPair > &receiveRawHeaderPairs,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
     bool post(
             const QNetworkRequest &request,
             const QSharedPointer< QHttpMultiPart > &multiPart,
-            QByteArray &target,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
@@ -118,14 +118,14 @@ public:
     bool put(
             const QNetworkRequest &request,
             const QByteArray &body,
-            QByteArray &target,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
     bool put(
             const QNetworkRequest &request,
             const QSharedPointer< QHttpMultiPart > &multiPart,
-            QByteArray &target,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
@@ -141,7 +141,7 @@ public:
     bool patch(
             const QNetworkRequest &request,
             const QByteArray &body,
-            QByteArray &target,
+            QByteArray &receiveBuffer,
             const int &timeout = 30 * 1000
         );
 
