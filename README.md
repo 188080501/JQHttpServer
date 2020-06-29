@@ -28,6 +28,28 @@ GitHub地址：https://github.com/188080501/JQHttpServer
 
 ## 性能介绍
 
-本库性能只能说一般般，底层是poll，而且又有一些跨线程操作。
+本库性能只能说一般，符合一般项目使用标准
 
-在我的电脑（ iMac + 127.0.0.1 ）上，HTTP的QPS为1670。
+原因是Qt底层是poll，库中又有一些跨线程操作
+
+在我的电脑（MacBookPro 16"/i9 CPU）使用siege进行测试，完整参数如下：
+
+```siege -c 2 -r 5000 http://127.0.0.1:23412```
+
+结果如下：
+```
+transactions: 10000
+availability: 100.00
+elapsed_time: 1.54
+data_transferred: 0.10
+response_time: 0.00
+transaction_rate: 6493.51
+throughput: 0.07
+concurrency: 1.89
+successful_transactions: 10000
+failed_transactions: 0
+longest_transaction: 0.42
+shortest_transaction: .00
+```
+
+即QPS 6493
