@@ -574,7 +574,7 @@ QPair< bool, QByteArray > JQNet::HTTP::put(const QString &url, const QByteArray 
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray receiveBuffer;
 
-    networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
+    networkRequest.setRawHeader( "Content-Type", "application/json;charset=UTF-8" );
 
     const auto &&isSucceed = HTTP().put( networkRequest, body, receiveBuffer, timeout );
 
@@ -607,7 +607,7 @@ QPair< bool, QByteArray > JQNet::HTTP::patch(const QString &url, const QByteArra
     QNetworkRequest networkRequest( ( QUrl( url ) ) );
     QByteArray receiveBuffer;
 
-    networkRequest.setRawHeader( "Content-Type", "application/x-www-form-urlencoded" );
+    networkRequest.setRawHeader( "Content-Type", "application/json;charset=UTF-8" );
 
     const auto &&isSucceed = HTTP().patch( networkRequest, body, receiveBuffer, timeout );
 
