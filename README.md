@@ -49,7 +49,7 @@ concurrency: 1.89
 successful_transactions: 10000
 failed_transactions: 0
 longest_transaction: 0.42
-shortest_transaction: .00
+shortest_transaction: 0.00
 ```
 
 即QPS 6493
