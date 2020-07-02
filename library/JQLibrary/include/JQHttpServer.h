@@ -117,7 +117,7 @@ public slots:
 
     void replyImage(const QString &imageFilePath, const int &httpStatusCode = 200);
 
-    void replyBytes(const QByteArray &bytes, const int &httpStatusCode = 200);
+    void replyBytes(const QByteArray &bytes, const QString &contentType = "application/octet-stream", const int &httpStatusCode = 200);
 
     void replyOptions();
 

@@ -106,8 +106,8 @@ static QString replyImageFormat(
 
 static QString replyBytesFormat(
         "HTTP/1.1 %1 OK\r\n"
-        "Content-Type: application/octet-stream\r\n"
-        "Content-Length: %2\r\n"
+        "Content-Type: %2\r\n"
+        "Content-Length: %3\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Headers: Content-Type,X-Requested-With\r\n"
         "\r\n"
@@ -593,7 +593,7 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
     ioDevice_->write( data );
 }
 
-void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpStatusCode)
+void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &contentType, const int &httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyBytes" )
 
@@ -601,7 +601,7 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
     {
         replyHttpCode_ = httpStatusCode;
 
-        QMetaObject::invokeMethod(this, "replyBytes", Qt::QueuedConnection, Q_ARG(QByteArray, bytes), Q_ARG(int, httpStatusCode));
+        QMetaObject::invokeMethod(this, "replyBytes", Qt::QueuedConnection, Q_ARG(QByteArray, bytes), Q_ARG(QString, contentType), Q_ARG(int, httpStatusCode));
         return;
     }
 
@@ -625,6 +625,7 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const int &httpS
 
     const auto &&data = replyBytesFormat.arg(
                 QString::number( httpStatusCode ),
+                contentType,
                 QString::number( replyBodySize_ )
             ).toUtf8();
 
