@@ -1,6 +1,6 @@
 ## 介绍
 
-JQHttpServer是基于Qt开发的轻量级HTTP/HTTPS服务器，目前支持GET和POST两个协议。
+JQHttpServer是基于Qt开发的轻量级HTTP/HTTPS服务器
 
 底层有QTcpSocket、QSslSocket和QLocalSocket三个版本，方便使用。
 
@@ -12,7 +12,7 @@ JQHttpServer是基于Qt开发的轻量级HTTP/HTTPS服务器，目前支持GET�
 * testlib（测试用，运行不需要）
 * OpenSSL（如果需要HTTPS）
 
-理论上可以部署到任何Qt支持的平台上。
+不依赖外部库，理论上可以部署到任何Qt支持的平台上。
 
 推荐使用Linux系统或者Unix系统，因为在5.7后，Qt更换了Unix相关系统的底层模型，从select更换为了poll，这样改进后，并发就脱离了1024个的限制。
 
@@ -28,7 +28,7 @@ GitHub地址：https://github.com/188080501/JQHttpServer
 
 ## 性能介绍
 
-本库性能只能说一般，符合一般项目使用标准
+本库性能一般，符合一般项目使用标准
 
 原因是Qt底层是poll，库中又有一些跨线程操作
 
