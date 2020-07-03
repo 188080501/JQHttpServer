@@ -6,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QCoreApplication app( argc, argv );
 
     const auto &&reply = JQNet::HTTP::post( "https://127.0.0.1:24684/TestUrl", "BodyData" );
 //    const auto &&reply = JQNet::HTTP::get( "https://127.0.0.1:24684/TestUrl" );

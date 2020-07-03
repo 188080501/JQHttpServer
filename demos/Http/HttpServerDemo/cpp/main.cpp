@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QCoreApplication app( argc, argv );
 
     JQHttpServer::TcpServerManage tcpServerManage( 2 ); // 设置最大处理线程数，默认2个
 
@@ -30,5 +30,5 @@ int main(int argc, char *argv[])
 
     qDebug() << "listen:" << tcpServerManage.listen( QHostAddress::Any, 23412 );
 
-    return a.exec();
+    return app.exec();
 }

@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[])
 {
-    QCoreApplication a(argc, argv);
+    QCoreApplication app( argc, argv );
 
 #ifndef QT_NO_SSL
     JQHttpServer::SslServerManage sslServerManage( 2 ); // 设置最大处理线程数，默认2个
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 //                        { "xxx/COMODO RSA Domain Validation Secure Server CA.cer", QSsl::Der }
 //                    }
 //                );
-    return a.exec();
+    return app.exec();
 #else
     return 0;
 #endif
