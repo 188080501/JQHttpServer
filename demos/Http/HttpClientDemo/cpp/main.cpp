@@ -13,5 +13,5 @@ int main(int argc, char *argv[])
 
     qDebug() << reply.first << reply.second;
 
-    return app.exec();
+    return 0;
 }
