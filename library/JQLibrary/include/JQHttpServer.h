@@ -131,28 +131,28 @@ private:
 private:
     static QAtomicInt remainSession_;
 
-    QPointer< QIODevice > ioDevice_;
-    std::function< void(const QPointer< Session > &) > handleAcceptedCallback_;
-    QSharedPointer< QTimer > autoCloseTimer_;
+    QPointer< QIODevice >                                ioDevice_;
+    std::function< void( const QPointer< Session > & ) > handleAcceptedCallback_;
+    QSharedPointer< QTimer >                             autoCloseTimer_;
 
     QByteArray receiveBuffer_;
 
-    QString requestSourceIp_;
-    QString requestMethod_;
-    QString requestUrl_;
-    QString requestCrlf_;
-    QByteArray requestBody_;
-
+    QString                  requestSourceIp_;
+    QString                  requestMethod_;
+    QString                  requestUrl_;
+    QString                  requestCrlf_;
+    QByteArray               requestBody_;
     QMap< QString, QString > requestHeader_;
-    bool headerAcceptedFinished_ = false;
-    bool contentAcceptedFinished_ = false;
-    qint64 contentLength_ = -1;
 
-    int replyHttpCode_ = -1;
+    bool   headerAcceptedFinished_  = false;
+    bool   contentAcceptedFinished_ = false;
+    qint64 contentLength_           = -1;
+
+    int        replyHttpCode_ = -1;
     QByteArray replyBuffer_;
-    qint64 replyBodySize_ = -1;
+    qint64     replyBodySize_ = -1;
 
-    qint64 waitWrittenByteCount_ = -1;
+    qint64                      waitWrittenByteCount_ = -1;
     QSharedPointer< QIODevice > ioDeviceForReply_;
 };
 
@@ -218,7 +218,7 @@ public:
 
     ~TcpServerManage();
 
-    bool listen(const QHostAddress &address, const quint16 &port);
+    bool listen( const QHostAddress &address, const quint16 &port );
 
 private:
     bool isRunning();
@@ -247,14 +247,12 @@ public:
 
     ~SslServerManage();
 
-    bool listen(
-            const QHostAddress &address,
-            const quint16 &port,
-            const QString &crtFilePath,
-            const QString &keyFilePath,
-            const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList = { }, // [ { filePath, format } ]
-            const QSslSocket::PeerVerifyMode &peerVerifyMode = QSslSocket::VerifyNone
-        );
+    bool listen( const QHostAddress &                                   address,
+                 const quint16 &                                        port,
+                 const QString &                                        crtFilePath,
+                 const QString &                                        keyFilePath,
+                 const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList = {},    // [ { filePath, format } ]
+                 const QSslSocket::PeerVerifyMode &                     peerVerifyMode = QSslSocket::VerifyNone );
 
 private:
     bool isRunning();
@@ -267,7 +265,7 @@ private:
     QPointer< SslServerHelper > tcpServer_;
 
     QHostAddress listenAddress_ = QHostAddress::Any;
-    quint16 listenPort_ = 0;
+    quint16      listenPort_    = 0;
 
     QSharedPointer< QSslConfiguration > sslConfiguration_;
 };
@@ -283,7 +281,7 @@ public:
 
     ~LocalServerManage();
 
-    bool listen(const QString &name);
+    bool listen( const QString &name );
 
 private:
     bool isRunning();
