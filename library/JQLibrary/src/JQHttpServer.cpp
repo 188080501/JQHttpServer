@@ -338,21 +338,23 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
         replyHttpCode_ = httpStatusCode;
         replyBodySize_ = replyData.toUtf8().size();
 
-        QMetaObject::invokeMethod( this,
-                                   "replyText",
-                                   Qt::QueuedConnection,
-                                   Q_ARG( QString, replyData ),
-                                   Q_ARG( int, httpStatusCode ) );
+        QMetaObject::invokeMethod(
+            this,
+            "replyText",
+            Qt::QueuedConnection,
+            Q_ARG( QString, replyData ),
+            Q_ARG( int, httpStatusCode ) );
         return;
     }
 
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyText" )
 
     const auto &&data = replyTextFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  "text;charset=UTF-8",
-                                  QString::number( replyBodySize_ ),
-                                  replyData )
+                            .arg(
+                                QString::number( httpStatusCode ),
+                                "text;charset=UTF-8",
+                                QString::number( replyBodySize_ ),
+                                replyData )
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size();
@@ -377,10 +379,11 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
     replyBodySize_ = buffer.toUtf8().size();
 
     const auto &&data = replyRedirectsFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  "text;charset=UTF-8",
-                                  QString::number( replyBodySize_ ),
-                                  buffer )
+                            .arg(
+                                QString::number( httpStatusCode ),
+                                "text;charset=UTF-8",
+                                QString::number( replyBodySize_ ),
+                                buffer )
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size();
@@ -404,10 +407,11 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyJsonObject" )
 
     const auto &&buffer = replyTextFormat
-                              .arg( QString::number( httpStatusCode ),
-                                    "application/json;charset=UTF-8",
-                                    QString::number( replyBodySize_ ),
-                                    QString( replyBuffer_ ) )
+                              .arg(
+                                  QString::number( httpStatusCode ),
+                                  "application/json;charset=UTF-8",
+                                  QString::number( replyBodySize_ ),
+                                  QString( replyBuffer_ ) )
                               .toUtf8();
 
     waitWrittenByteCount_ = buffer.size();
@@ -431,10 +435,11 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyJsonArray" )
 
     const auto &&buffer = replyTextFormat
-                              .arg( QString::number( httpStatusCode ),
-                                    "application/json;charset=UTF-8",
-                                    QString::number( replyBodySize_ ),
-                                    QString( replyBuffer_ ) )
+                              .arg(
+                                  QString::number( httpStatusCode ),
+                                  "application/json;charset=UTF-8",
+                                  QString::number( replyBodySize_ ),
+                                  QString( replyBuffer_ ) )
                               .toUtf8();
 
     waitWrittenByteCount_ = buffer.size();
@@ -469,9 +474,10 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
     replyBodySize_ = file->size();
 
     const auto &&data = replyFileFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  QFileInfo( filePath ).fileName(),
-                                  QString::number( replyBodySize_ ) )
+                            .arg(
+                                QString::number( httpStatusCode ),
+                                QFileInfo( filePath ).fileName(),
+                                QString::number( replyBodySize_ ) )
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
@@ -508,11 +514,10 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
 
     replyBodySize_ = fileData.size();
 
-    const auto &&data = replyFileFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  fileName,
-                                  QString::number( replyBodySize_ ) )
-                            .toUtf8();
+    const auto &&data =
+        replyFileFormat
+            .arg( QString::number( httpStatusCode ), fileName, QString::number( replyBodySize_ ) )
+            .toUtf8();
 
     waitWrittenByteCount_ = data.size() + fileData.size();
     ioDevice_->write( data );
@@ -555,10 +560,10 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
 
     replyBodySize_ = buffer->buffer().size();
 
-    const auto &&data = replyImageFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  QString::number( replyBodySize_ ) )
-                            .toUtf8();
+    const auto &&data =
+        replyImageFormat
+            .arg( QString::number( httpStatusCode ), QString::number( replyBodySize_ ) )
+            .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write( data );
@@ -593,10 +598,10 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
 
     replyBodySize_ = buffer->size();
 
-    const auto &&data = replyImageFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  QString::number( replyBodySize_ ) )
-                            .toUtf8();
+    const auto &&data =
+        replyImageFormat
+            .arg( QString::number( httpStatusCode ), QString::number( replyBodySize_ ) )
+            .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->size();
     ioDevice_->write( data );
@@ -632,11 +637,10 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &c
 
     replyBodySize_ = buffer->buffer().size();
 
-    const auto &&data = replyBytesFormat
-                            .arg( QString::number( httpStatusCode ),
-                                  contentType,
-                                  QString::number( replyBodySize_ ) )
-                            .toUtf8();
+    const auto &&data =
+        replyBytesFormat
+            .arg( QString::number( httpStatusCode ), contentType, QString::number( replyBodySize_ ) )
+            .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
     ioDevice_->write(data);
