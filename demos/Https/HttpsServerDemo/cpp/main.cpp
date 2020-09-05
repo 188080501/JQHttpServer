@@ -27,7 +27,13 @@ int main(int argc, char *argv[])
         // 注2：在reply后，session的生命周期不可控，所以reply后不要再调用session的接口了
     } );
 
-    qDebug() << "listen:" << sslServerManage.listen( QHostAddress::Any, 24684, ":/server.crt", ":/server.key" );
+    const auto &&listenSucceed = sslServerManage.listen( QHostAddress::Any, 24684, ":/server.crt", ":/server.key" );
+    qDebug() << "listen:" << listenSucceed;
+
+    if ( !listenSucceed )
+    {
+        return -1;
+    }
 
     // 这是我在一个实际项目中用的配置（用认证的证书，访问时带绿色小锁），其中涉及到隐私的细节已经被替换，但是任然能够看出整体用法
 //    qDebug() << "listen:" << sslServerManage.listen(

@@ -28,7 +28,13 @@ int main(int argc, char *argv[])
         // 注2：在reply后，session的生命周期不可控，所以reply后不要再调用session的接口了
     } );
 
-    qDebug() << "listen:" << tcpServerManage.listen( QHostAddress::Any, 23412 );
+    const auto &&listenSucceed = tcpServerManage.listen( QHostAddress::Any, 23412 );
+    qDebug() << "listen:" << listenSucceed;
+
+    if ( !listenSucceed )
+    {
+        return -1;
+    }
 
     return app.exec();
 }

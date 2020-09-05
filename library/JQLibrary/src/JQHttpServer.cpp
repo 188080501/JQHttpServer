@@ -894,6 +894,7 @@ bool JQHttpServer::AbstractManage::startServerThread()
         if ( !this->onStart() )
         {
             semaphore.release( 1 );
+            return;
         }
 
         semaphore.release( 1 );
