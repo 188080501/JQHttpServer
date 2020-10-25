@@ -8,11 +8,10 @@ TEMPLATE = app
 include($$PWD/../../library/JQLibrary/JQLibrary.pri)
 
 HEADERS += \
-    $$PWD/cpp/OverallTest.h
+    $$PWD/cpp/*.h
 
 SOURCES += \
-    $$PWD/cpp/main.cpp \
-    $$PWD/cpp/OverallTest.cpp
+    $$PWD/cpp/*.cpp
 
 RESOURCES += \
     $$PWD/key/key.qrc

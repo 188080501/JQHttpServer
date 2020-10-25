@@ -3,7 +3,7 @@
 #include <QtTest>
 
 // Project lib import
-#include "OverallTest.h"
+#include "overalltest.h"
 
 int main(int argc, char *argv[])
 {
