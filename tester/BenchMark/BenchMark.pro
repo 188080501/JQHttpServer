@@ -8,8 +8,7 @@ TEMPLATE = app
 include($$PWD/../../library/JQLibrary/JQLibrary.pri)
 
 HEADERS += \
-    $$PWD/cpp/BenchMark.h
+    $$PWD/cpp/*.h
 
 SOURCES += \
-    $$PWD/cpp/main.cpp \
-    $$PWD/cpp/BenchMark.cpp
+    $$PWD/cpp/*.cpp
