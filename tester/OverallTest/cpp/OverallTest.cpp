@@ -19,7 +19,7 @@ void OverallTest::initTestCase()
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestBody() ) ) );
     } );
 
-    QCOMPARE( httpServerManage_->listen( QHostAddress::Any, 24680 ), true );
+    QCOMPARE( httpServerManage_->listen( QHostAddress::Any, 23414 ), true );
 
 #ifndef QT_NO_SSL
     httpsServerManage_.reset( new JQHttpServer::SslServerManage );
@@ -29,7 +29,7 @@ void OverallTest::initTestCase()
         session->replyText( QString( "->%1<-->%2<-" ).arg( session->requestUrl(), QString( session->requestBody() ) ) );
     } );
 
-    QCOMPARE( httpsServerManage_->listen( QHostAddress::Any, 24681, ":/server.crt", ":/server.key" ), true );
+    QCOMPARE( httpsServerManage_->listen( QHostAddress::Any, 23415, ":/server.crt", ":/server.key" ), true );
 #endif
 }
 
@@ -47,7 +47,7 @@ void OverallTest::connectTest()
     {
         QTcpSocket socket;
 
-        socket.connectToHost( "127.0.0.1", 24680 );
+        socket.connectToHost( "127.0.0.1", 23414 );
         QCOMPARE( socket.waitForConnected( 1000 ), true );
 
         socket.write( "HTTP" );
@@ -57,14 +57,14 @@ void OverallTest::connectTest()
 
 void OverallTest::httpGetTest()
 {
-    const auto &&reply = JQNet::HTTP::get( "http://127.0.0.1:24680/httpGetTest/" );
+    const auto &&reply = JQNet::HTTP::get( "http://127.0.0.1:23414/httpGetTest/" );
     QCOMPARE( reply.first, true );
     QCOMPARE( reply.second, QByteArray( "->/httpGetTest/<--><-" ) );
 }
 
 void OverallTest::httpPostTest()
 {
-    const auto &&reply = JQNet::HTTP::post( "http://127.0.0.1:24680/httpPostTest/", "append data" );
+    const auto &&reply = JQNet::HTTP::post( "http://127.0.0.1:23414/httpPostTest/", "append data" );
     QCOMPARE( reply.first, true );
     QCOMPARE( reply.second, QByteArray( "->/httpPostTest/<-->append data<-" ) );
 }
@@ -72,14 +72,14 @@ void OverallTest::httpPostTest()
 #ifndef QT_NO_SSL
 void OverallTest::httpsGetTest()
 {
-    const auto &&reply = JQNet::HTTP::get( "https://127.0.0.1:24681/httpGetTest/" );
+    const auto &&reply = JQNet::HTTP::get( "https://127.0.0.1:23415/httpGetTest/" );
     QCOMPARE( reply.first, true );
     QCOMPARE( reply.second, QByteArray( "->/httpGetTest/<--><-" ) );
 }
 
 void OverallTest::httpsPostTest()
 {
-    const auto &&reply = JQNet::HTTP::post( "https://127.0.0.1:24681/httpPostTest/", "append data" );
+    const auto &&reply = JQNet::HTTP::post( "https://127.0.0.1:23415/httpPostTest/", "append data" );
     QCOMPARE( reply.first, true );
     QCOMPARE( reply.second, QByteArray( "->/httpPostTest/<-->append data<-" ) );
 }

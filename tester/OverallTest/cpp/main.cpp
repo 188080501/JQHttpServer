@@ -7,6 +7,9 @@
 
 int main(int argc, char *argv[])
 {
+    qputenv( "QT_SSL_USE_TEMPORARY_KEYCHAIN", "1" );
+    qSetMessagePattern( "%{time hh:mm:ss.zzz}: %{message}" );
+
     QCoreApplication app( argc, argv );
 
     OverallTest benchMark;
