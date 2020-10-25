@@ -15,8 +15,8 @@
     http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
 */
 
-#ifndef JQHTTPSERVER_H_
-#define JQHTTPSERVER_H_
+#ifndef JQLIBRARY_INCLUDE_JQHTTPSERVER_H_
+#define JQLIBRARY_INCLUDE_JQHTTPSERVER_H_
 
 #ifndef QT_NETWORK_LIB
 #   error("Please add network in pro file")
@@ -298,4 +298,4 @@ private:
 
 }
 
-#endif//JQHTTPSERVER_H_
+#endif//JQLIBRARY_INCLUDE_JQHTTPSERVER_H_
