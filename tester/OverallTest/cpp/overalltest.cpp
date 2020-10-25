@@ -1,4 +1,4 @@
-﻿#include "OverallTest.h"
+﻿#include "overalltest.h"
 
 // Qt lib import
 #include <QtTest>
@@ -7,8 +7,8 @@
 #include <QtConcurrent>
 
 // JQLibrary import
-#include "JQHttpServer.h"
-#include "JQNet.h"
+#include <JQHttpServer>
+#include <JQNet>
 
 void OverallTest::initTestCase()
 {

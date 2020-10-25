@@ -3,7 +3,7 @@
 #include <QtTest>
 
 // Project lib import
-#include "BenchMark.h"
+#include "benchmark.h"
 
 int main(int argc, char *argv[])
 {

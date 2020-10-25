@@ -2,7 +2,7 @@
 #include <QtCore>
 
 // JQLibrary import
-#include "JQNet.h"
+#include <JQNet>
 
 int main(int argc, char *argv[])
 {

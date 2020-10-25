@@ -1,4 +1,4 @@
-﻿#include "BenchMark.h"
+﻿#include "benchmark.h"
 
 // Qt lib import
 #include <QtTest>
@@ -6,8 +6,8 @@
 #include <QtConcurrent>
 
 // JQLibrary import
-#include "JQHttpServer.h"
-#include "JQNet.h"
+#include <JQHttpServer>
+#include <JQNet>
 
 void BenchMark::initTestCase()
 {

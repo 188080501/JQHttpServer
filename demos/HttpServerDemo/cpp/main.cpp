@@ -3,7 +3,7 @@
 #include <QImage>
 
 // JQLibrary import
-#include "JQHttpServer.h"
+#include <JQHttpServer>
 
 void onHttpAccepted(const QPointer< JQHttpServer::Session > &session)
 {
