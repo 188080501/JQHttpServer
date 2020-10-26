@@ -271,31 +271,6 @@ private:
 };
 #endif
 
-class JQLIBRARY_EXPORT LocalServerManage: public AbstractManage
-{
-    Q_OBJECT
-    Q_DISABLE_COPY( LocalServerManage )
-
-public:
-    LocalServerManage(const int &handleMaxThreadCount);
-
-    ~LocalServerManage();
-
-    bool listen( const QString &name );
-
-private:
-    bool isRunning();
-
-    bool onStart();
-
-    void onFinish();
-
-private:
-    QPointer< QLocalServer > localServer_;
-
-    QString listenName_;
-};
-
 }
 
 #endif//JQLIBRARY_INCLUDE_JQHTTPSERVER_H_
