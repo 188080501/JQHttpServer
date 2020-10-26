@@ -30,7 +30,7 @@
 #include <QFile>
 #include <QImage>
 #include <QBuffer>
-#include <QTimer>
+#include <QPainter>
 #include <QtConcurrent>
 
 #include <QTcpServer>
@@ -814,7 +814,7 @@ void JQHttpServer::Session::onBytesWritten(const qint64 &written)
     if ( this->waitWrittenByteCount_ <= 0 )
     {
         this->waitWrittenByteCount_ = 0;
-        QTimer::singleShot( 1000, this, &QObject::deleteLater );
+        QTimer::singleShot( 500, this, &QObject::deleteLater );
         return;
     }
 
@@ -1156,5 +1156,444 @@ void JQHttpServer::SslServerManage::onFinish()
     tcpServer_.clear();
 
     this->mutex_.unlock();
+}
+
+// Service
+QSharedPointer< JQHttpServer::Service > JQHttpServer::Service::createService(const QMap< ServiceConfigEnum, QVariant > &config)
+{
+    QSharedPointer< JQHttpServer::Service > result( new JQHttpServer::Service );
+
+    if ( config.contains( ServiceProcess ) &&
+         config[ ServiceProcess ].canConvert< QPointer< QObject > >() &&
+         !config[ ServiceProcess ].value< QPointer< QObject > >().isNull() )
+    {
+        result->registerProcess( config[ ServiceProcess ].value< QPointer< QObject > >() );
+    }
+
+    if ( config.contains( ServiceProcess ) &&
+         config[ ServiceProcess ].canConvert< QList< QPointer< QObject > > >() )
+    {
+        for ( const auto &process: config[ ServiceProcess ].value< QList< QPointer< QObject > > >() )
+        {
+            if ( !process ) { continue; }
+
+            result->registerProcess( process );
+        }
+    }
+
+    const auto httpPort = static_cast< quint16 >( config[ ServiceHttpListenPort ].toInt() );
+    if ( httpPort > 0 )
+    {
+        result->httpServerManage_.reset( new JQHttpServer::TcpServerManage );
+        result->httpServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, result.data(), std::placeholders::_1 ) );
+
+        if ( !result->httpServerManage_->listen(
+                 QHostAddress::Any,
+                 httpPort
+             ) )
+        {
+            qWarning() << "JQHttpServer::Service: listen port error:" << httpPort;
+            return { };
+        }
+    }
+
+    const auto httpsPort = static_cast< quint16 >( config[ ServiceHttpsListenPort ].toInt() );
+    if ( httpsPort > 0 )
+    {
+        result->httpsServerManage_.reset( new JQHttpServer::SslServerManage );
+        result->httpsServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, result.data(), std::placeholders::_1 ) );
+
+        QSslSocket::PeerVerifyMode peerVerifyMode = QSslSocket::VerifyNone;
+        if ( config.contains( ServiceSslPeerVerifyMode ) )
+        {
+            peerVerifyMode = static_cast< QSslSocket::PeerVerifyMode >( config[ ServiceSslPeerVerifyMode ].toInt() );
+        }
+
+        QString crtFilePath = config[ ServiceSslCrtFilePath ].toString();
+        QString keyFilePath = config[ ServiceSslKeyFilePath ].toString();
+        if ( crtFilePath.isEmpty() || keyFilePath.isEmpty() )
+        {
+            qWarning() << "JQHttpServer::Service: crt or key file path error";
+            return { };
+        }
+
+        QList< QPair< QString, QSsl::EncodingFormat > > caFileList;
+        for ( const auto &caFilePath: config[ ServiceSslCAFilePath ].toStringList() )
+        {
+            QPair< QString, QSsl::EncodingFormat > pair;
+            pair.first = caFilePath;
+            pair.second = QSsl::Pem;
+            caFileList.push_back( pair );
+        }
+
+        if ( !result->httpsServerManage_->listen(
+                 QHostAddress::Any,
+                 httpsPort,
+                 crtFilePath,
+                 keyFilePath,
+                 caFileList,
+                 peerVerifyMode
+             ) )
+        {
+            qWarning() << "JQHttpServer::Service: listen port error:" << httpsPort;
+            return { };
+        }
+    }
+
+    const auto serviceUuid = config[ ServiceUuid ].toString();
+    if ( !QUuid( serviceUuid ).isNull() )
+    {
+        result->serviceUuid_ = serviceUuid;
+    }
+
+    return result;
+}
+
+void JQHttpServer::Service::registerProcess( const QPointer< QObject > &process )
+{
+    static QSet< QString > exceptionSlots( { "deleteLater", "_q_reregisterTimers" } );
+    static QSet< QString > allowMethod( { "GET", "POST", "DELETE", "PUT" } );
+
+    QString apiPathPrefix;
+    for ( auto index = 0; index < process->metaObject()->classInfoCount(); ++index )
+    {
+        if ( QString( process->metaObject()->classInfo( 0 ).name() ) == "apiPathPrefix" )
+        {
+            apiPathPrefix = process->metaObject()->classInfo( 0 ).value();
+        }
+    }
+
+    for ( auto index = 0; index < process->metaObject()->methodCount(); ++index )
+    {
+        const auto &&metaMethod = process->metaObject()->method( index );
+        if ( metaMethod.methodType() != QMetaMethod::Slot ) { continue; }
+
+        ApiConfig api;
+
+        api.process = process;
+
+        if ( metaMethod.name() == "sessionAccepted" )
+        {
+            schedules2_[ apiPathPrefix ] =
+                [ = ]( const QPointer< JQHttpServer::Session > &session ) {
+                    QMetaObject::invokeMethod(
+                        process,
+                        "sessionAccepted",
+                        Qt::DirectConnection,
+                        Q_ARG( QPointer< JQHttpServer::Session >, session ) );
+                };
+
+            continue;
+        }
+        else if ( metaMethod.parameterTypes() == QList< QByteArray >( { "QPointer<JQHttpServer::Session>" } ) )
+        {
+            api.receiveDataType = NoReceiveDataType;
+        }
+        else if ( metaMethod.parameterTypes() == QList< QByteArray >( { "QVariantList", "QPointer<JQHttpServer::Session>" } ) )
+        {
+            api.receiveDataType = VariantListReceiveDataType;
+        }
+        else if ( metaMethod.parameterTypes() == QList< QByteArray >( { "QVariantMap", "QPointer<JQHttpServer::Session>" } ) )
+        {
+            api.receiveDataType = VariantMapReceiveDataType;
+        }
+        else if ( metaMethod.parameterTypes() == QList< QByteArray >( { "QList<QVariantMap>", "QPointer<JQHttpServer::Session>" } ) )
+        {
+            api.receiveDataType = ListVariantMapReceiveDataType;
+        }
+        else if ( metaMethod.name() == "certificateVerifier" )
+        {
+            certificateVerifier_ = process;
+        }
+        else
+        {
+            continue;
+        }
+
+        api.slotName = QString( metaMethod.name() );
+        if ( exceptionSlots.contains( api.slotName ) ) { continue; }
+
+        for ( const auto &methdo: allowMethod )
+        {
+            if ( api.slotName.startsWith( methdo.toLower() ) )
+            {
+                api.apiMethod = methdo;
+                break;
+            }
+        }
+        if ( api.apiMethod.isEmpty() ) { continue; }
+
+        api.apiName = api.slotName.mid( api.apiMethod.size() );
+        if ( api.apiName.isEmpty() ) { continue; }
+
+        api.apiName[ 0 ] = api.apiName[ 0 ].toLower();
+        api.apiName.push_front( "/" );
+
+        if ( !apiPathPrefix.isEmpty() )
+        {
+            api.apiName = apiPathPrefix + api.apiName;
+        }
+
+        schedules_[ api.apiMethod.toUpper() ][ api.apiName ] = api;
+    }
+}
+
+QJsonDocument JQHttpServer::Service::extractPostJsonData(const QPointer< JQHttpServer::Session > &session)
+{
+    return QJsonDocument::fromJson( session->requestBody() );
+}
+
+void JQHttpServer::Service::httpGetPing(const QPointer< JQHttpServer::Session > &session)
+{
+    QJsonObject serverTimeData;
+    serverTimeData[ "serverTime" ] = QDateTime::currentMSecsSinceEpoch();
+
+    QJsonObject result;
+    result[ "status" ] = 200;
+    result[ "error" ] = 0;
+    result[ "data" ] = serverTimeData;
+
+    session->replyJsonObject( result );
+}
+
+void JQHttpServer::Service::httpGetFaviconIco(const QPointer< JQHttpServer::Session > &session)
+{
+    QImage image( 256, 256, QImage::Format_ARGB32 );
+    image.fill( 0x0 );
+
+    QPainter painter( &image );
+    painter.setPen( Qt::NoPen );
+    painter.setBrush( QColor( "#ff00ff" ) );
+    painter.drawEllipse( 16, 16, 224, 224 );
+    painter.end();
+
+    session->replyImage( image, 200 );
+}
+
+void JQHttpServer::Service::httpOptions(const QPointer< JQHttpServer::Session > &session)
+{
+    session->replyOptions();
+}
+
+void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Session > &session)
+{
+    if ( certificateVerifier_ && qobject_cast< QSslSocket * >( session->ioDevice() ) )
+    {
+        QMetaObject::invokeMethod(
+                    certificateVerifier_,
+                    "certificateVerifier",
+                    Qt::DirectConnection,
+                    Q_ARG( QSslCertificate, session->peerCertificate() ),
+                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                );
+
+        if ( session->replyHttpCode() >= 0 ) { return; }
+    }
+
+    const auto schedulesIt = schedules_.find( session->requestMethod() );
+    if ( schedulesIt != schedules_.end() )
+    {
+        auto apiName = session->requestUrlPath();
+
+        auto it = schedulesIt.value().find( session->requestUrlPath() );
+        if ( ( it == schedulesIt.value().end() ) && ( session->requestUrlPath().contains( "_" ) ) )
+        {
+            apiName = Service::snakeCaseToCamelCase( session->requestUrlPath() );
+            it = schedulesIt.value().find( apiName );
+        }
+
+        if ( it != schedulesIt.value().end() )
+        {
+            Recoder recoder( session );
+            recoder.serviceUuid_ = serviceUuid_;
+            recoder.apiName = apiName;
+
+            switch ( it->receiveDataType )
+            {
+                case NoReceiveDataType:
+                {
+                    QMetaObject::invokeMethod(
+                                it->process,
+                                it->slotName.toLatin1().data(),
+                                Qt::DirectConnection,
+                                Q_ARG( QPointer< JQHttpServer::Session >, session )
+                            );
+                    return;
+                }
+                case VariantListReceiveDataType:
+                {
+                    const auto &&json = this->extractPostJsonData( session );
+                    if ( !json.isNull() )
+                    {
+                        QMetaObject::invokeMethod(
+                                    it->process,
+                                    it->slotName.toLatin1().data(),
+                                    Qt::DirectConnection,
+                                    Q_ARG( QVariantList, json.array().toVariantList() ),
+                                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                );
+                        return;
+                    }
+                    break;
+                }
+                case VariantMapReceiveDataType:
+                {
+                    const auto &&json = this->extractPostJsonData( session );
+                    if ( !json.isNull() )
+                    {
+                        QMetaObject::invokeMethod(
+                                    it->process,
+                                    it->slotName.toLatin1().data(),
+                                    Qt::DirectConnection,
+                                    Q_ARG( QVariantMap, json.object().toVariantMap() ),
+                                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                );
+                        return;
+                    }
+                    break;
+                }
+                case ListVariantMapReceiveDataType:
+                {
+                    const auto &&json = this->extractPostJsonData( session );
+                    if ( !json.isNull() )
+                    {
+                        QMetaObject::invokeMethod(
+                                    it->process,
+                                    it->slotName.toLatin1().data(),
+                                    Qt::DirectConnection,
+                                    Q_ARG( QList< QVariantMap >, Service::variantListToListVariantMap( json.array().toVariantList() ) ),
+                                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                );
+                        return;
+                    }
+                    break;
+                }
+                default:
+                {
+                    qDebug() << "onSessionAccepted: non match receive data type:" << it->receiveDataType;
+                    session->replyText( "404", 404 );
+                    return;
+                }
+            }
+
+            qDebug() << "onSessionAccepted: data error:" << it->receiveDataType;
+            session->replyText( "404", 404 );
+            return;
+        }
+    }
+
+    for ( auto it = schedules2_.begin(); it != schedules2_.end(); ++it )
+    {
+        if ( session->requestUrlPath().startsWith( it.key() ) )
+        {
+            it.value()( session );
+            return;
+        }
+    }
+
+    if ( ( session->requestMethod() == "GET" ) && ( session->requestUrlPath() == "/ping" ) )
+    {
+        this->httpGetPing( session );
+        return;
+    }
+    else if ( ( session->requestMethod() == "GET" ) && ( session->requestUrlPath() == "/favicon.ico" ) )
+    {
+        this->httpGetFaviconIco( session );
+        return;
+    }
+    else if ( session->requestMethod() == "OPTIONS" )
+    {
+        this->httpOptions( session );
+        return;
+    }
+
+    qDebug().noquote() << "HTTP not match:" << session->requestMethod() << session->requestUrlPath();
+    session->replyText( "404", 404 );
+}
+
+QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper)
+{
+    const auto &&splitList = source.split( '_', QString::SkipEmptyParts );
+    QString result;
+
+    for ( const auto &splitTag: splitList )
+    {
+        if ( splitTag.size() == 1 )
+        {
+            if ( result.isEmpty() )
+            {
+                if ( firstCharUpper )
+                {
+                    result += splitTag[ 0 ].toUpper();
+                }
+                else
+                {
+                    result += splitTag;
+                }
+            }
+            else
+            {
+                result += splitTag[ 0 ].toUpper();
+            }
+        }
+        else
+        {
+            if ( result.isEmpty() )
+            {
+                if ( firstCharUpper )
+                {
+                    result += splitTag[ 0 ].toUpper();
+                    result += splitTag.midRef( 1 );
+                }
+                else
+                {
+                    result += splitTag;
+                }
+            }
+            else
+            {
+                result += splitTag[ 0 ].toUpper();
+                result += splitTag.midRef( 1 );
+            }
+        }
+    }
+
+    return result;
+}
+
+QList< QVariantMap > JQHttpServer::Service::variantListToListVariantMap(const QVariantList &source)
+{
+    QList< QVariantMap > result;
+
+    for ( const auto &item: source )
+    {
+        result.push_back( item.toMap() );
+    }
+
+    return result;
+}
+
+JQHttpServer::Service::Recoder::Recoder(const QPointer< JQHttpServer::Session > &session)
+{
+    qDebug() << "HTTP accepted:" << session->requestMethod().toLatin1().data() << session->requestUrlPath().toLatin1().data();
+
+    session_ = session;
+    acceptedTime_ = QDateTime::currentDateTime();
+}
+
+JQHttpServer::Service::Recoder::~Recoder()
+{
+    if ( !session_ )
+    {
+        return;
+    }
+
+    const auto &&replyTime = QDateTime::currentDateTime();
+    const auto &&elapsed = replyTime.toMSecsSinceEpoch() - acceptedTime_.toMSecsSinceEpoch();
+
+    qDebug().noquote() << "HTTP finished:" << QString::number( elapsed ).rightJustified( 3, ' ' )
+                       << "ms, code:" << session_->replyHttpCode()
+                       << ", accepted:" << QString::number( session_->requestBody().size() ).rightJustified( 3, ' ' )
+                       << ", reply:" << QString::number( session_->replyBodySize() ).rightJustified( 3, ' ' );
 }
 #endif

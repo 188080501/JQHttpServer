@@ -269,6 +269,94 @@ private:
 
     QSharedPointer< QSslConfiguration > sslConfiguration_;
 };
+
+
+enum ServiceConfigEnum
+{
+    ServiceUnknownConfig,
+    ServiceHttpListenPort,
+    ServiceHttpsListenPort,
+    ServiceProcess, // QPointer< QObject > or QList< QPointer< QObject > >
+    ServiceUuid,
+    ServiceSslCrtFilePath,
+    ServiceSslKeyFilePath,
+    ServiceSslCAFilePath,
+    ServiceSslPeerVerifyMode,
+};
+
+class Service: public QObject
+{
+    Q_OBJECT
+    Q_DISABLE_COPY( Service )
+
+private:
+    enum ReceiveDataType
+    {
+        UnknownReceiveDataType,
+        NoReceiveDataType,
+        VariantListReceiveDataType,
+        VariantMapReceiveDataType,
+        ListVariantMapReceiveDataType,
+    };
+
+    struct ApiConfig
+    {
+        QPointer< QObject > process;
+        QString             apiMethod;
+        QString             apiName;
+        QString             slotName;
+        ReceiveDataType     receiveDataType = UnknownReceiveDataType;
+    };
+
+    class Recoder
+    {
+    public:
+        Recoder( const QPointer< JQHttpServer::Session > &session );
+
+        ~Recoder();
+
+        QPointer< JQHttpServer::Session > session_;
+        QDateTime                         acceptedTime_;
+        QString                           serviceUuid_;
+        QString                           apiName;
+    };
+
+private:
+    Service() = default;
+
+public:
+    ~Service() = default;
+
+    static QSharedPointer< Service > createService( const QMap< ServiceConfigEnum, QVariant > &config );
+
+    void registerProcess( const QPointer< QObject > &process );
+
+
+    virtual QJsonDocument extractPostJsonData( const QPointer< JQHttpServer::Session > &session );
+
+    virtual void httpGetPing( const QPointer< JQHttpServer::Session > &session );
+
+    virtual void httpGetFaviconIco( const QPointer< JQHttpServer::Session > &session );
+
+    virtual void httpOptions( const QPointer< JQHttpServer::Session > &session );
+
+private:
+    void onSessionAccepted( const QPointer< JQHttpServer::Session > &session );
+
+
+    static QString snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper = false);
+
+    static QList< QVariantMap > variantListToListVariantMap(const QVariantList &source);
+
+private:
+    QSharedPointer< JQHttpServer::TcpServerManage > httpServerManage_;
+    QSharedPointer< JQHttpServer::SslServerManage > httpsServerManage_;
+
+    QString                                     serviceUuid_;
+    QMap< QString, QMap< QString, ApiConfig > > schedules_;    // apiMethod -> apiName -> API
+    QMap< QString, std::function< void( const QPointer< JQHttpServer::Session > &session ) > > schedules2_; // apiPathPrefix -> callback
+    QPointer< QObject > certificateVerifier_;
+};
 #endif
 
 }
