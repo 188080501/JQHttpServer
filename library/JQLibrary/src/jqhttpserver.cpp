@@ -583,27 +583,27 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
 
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyImage" )
 
-    auto buffer = new QFile( imageFilePath );
+    auto file = new QFile( imageFilePath );
 
-    if ( !buffer->open( QIODevice::ReadWrite ) )
+    if ( !file->open( QIODevice::ReadOnly ) )
     {
         qDebug() << "JQHttpServer::Session::replyImage: open buffer error";
-        delete buffer;
+        delete file;
         this->deleteLater();
         return;
     }
 
-    ioDeviceForReply_.reset( buffer );
+    ioDeviceForReply_.reset( file );
     ioDeviceForReply_->seek( 0 );
 
-    replyBodySize_ = buffer->size();
+    replyBodySize_ = file->size();
 
     const auto &&data =
         replyImageFormat
             .arg( QString::number( httpStatusCode ), QString::number( replyBodySize_ ) )
             .toUtf8();
 
-    waitWrittenByteCount_ = data.size() + buffer->size();
+    waitWrittenByteCount_ = data.size() + file->size();
     ioDevice_->write( data );
 }
 
