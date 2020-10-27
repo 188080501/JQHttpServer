@@ -276,7 +276,7 @@ enum ServiceConfigEnum
     ServiceUnknownConfig,
     ServiceHttpListenPort,
     ServiceHttpsListenPort,
-    ServiceProcess, // QPointer< QObject > or QList< QPointer< QObject > >
+    ServiceProcessor, // QPointer< QObject > or QList< QPointer< QObject > >
     ServiceUuid,
     ServiceSslCrtFilePath,
     ServiceSslKeyFilePath,
@@ -321,15 +321,17 @@ private:
         QString                           apiName;
     };
 
-private:
+protected:
     Service() = default;
 
 public:
     ~Service() = default;
 
+
     static QSharedPointer< Service > createService( const QMap< ServiceConfigEnum, QVariant > &config );
 
-    void registerProcess( const QPointer< QObject > &process );
+
+    void registerProcessor( const QPointer< QObject > &processor );
 
 
     virtual QJsonDocument extractPostJsonData( const QPointer< JQHttpServer::Session > &session );
@@ -339,6 +341,9 @@ public:
     virtual void httpGetFaviconIco( const QPointer< JQHttpServer::Session > &session );
 
     virtual void httpOptions( const QPointer< JQHttpServer::Session > &session );
+
+protected:
+    bool initialize( const QMap< ServiceConfigEnum, QVariant > &config );
 
 private:
     void onSessionAccepted( const QPointer< JQHttpServer::Session > &session );

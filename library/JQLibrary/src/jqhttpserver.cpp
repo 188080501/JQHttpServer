@@ -1163,121 +1163,40 @@ QSharedPointer< JQHttpServer::Service > JQHttpServer::Service::createService(con
 {
     QSharedPointer< JQHttpServer::Service > result( new JQHttpServer::Service );
 
-    if ( config.contains( ServiceProcess ) &&
-         config[ ServiceProcess ].canConvert< QPointer< QObject > >() &&
-         !config[ ServiceProcess ].value< QPointer< QObject > >().isNull() )
-    {
-        result->registerProcess( config[ ServiceProcess ].value< QPointer< QObject > >() );
-    }
-
-    if ( config.contains( ServiceProcess ) &&
-         config[ ServiceProcess ].canConvert< QList< QPointer< QObject > > >() )
-    {
-        for ( const auto &process: config[ ServiceProcess ].value< QList< QPointer< QObject > > >() )
-        {
-            if ( !process ) { continue; }
-
-            result->registerProcess( process );
-        }
-    }
-
-    const auto httpPort = static_cast< quint16 >( config[ ServiceHttpListenPort ].toInt() );
-    if ( httpPort > 0 )
-    {
-        result->httpServerManage_.reset( new JQHttpServer::TcpServerManage );
-        result->httpServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, result.data(), std::placeholders::_1 ) );
-
-        if ( !result->httpServerManage_->listen(
-                 QHostAddress::Any,
-                 httpPort
-             ) )
-        {
-            qWarning() << "JQHttpServer::Service: listen port error:" << httpPort;
-            return { };
-        }
-    }
-
-    const auto httpsPort = static_cast< quint16 >( config[ ServiceHttpsListenPort ].toInt() );
-    if ( httpsPort > 0 )
-    {
-        result->httpsServerManage_.reset( new JQHttpServer::SslServerManage );
-        result->httpsServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, result.data(), std::placeholders::_1 ) );
-
-        QSslSocket::PeerVerifyMode peerVerifyMode = QSslSocket::VerifyNone;
-        if ( config.contains( ServiceSslPeerVerifyMode ) )
-        {
-            peerVerifyMode = static_cast< QSslSocket::PeerVerifyMode >( config[ ServiceSslPeerVerifyMode ].toInt() );
-        }
-
-        QString crtFilePath = config[ ServiceSslCrtFilePath ].toString();
-        QString keyFilePath = config[ ServiceSslKeyFilePath ].toString();
-        if ( crtFilePath.isEmpty() || keyFilePath.isEmpty() )
-        {
-            qWarning() << "JQHttpServer::Service: crt or key file path error";
-            return { };
-        }
-
-        QList< QPair< QString, QSsl::EncodingFormat > > caFileList;
-        for ( const auto &caFilePath: config[ ServiceSslCAFilePath ].toStringList() )
-        {
-            QPair< QString, QSsl::EncodingFormat > pair;
-            pair.first = caFilePath;
-            pair.second = QSsl::Pem;
-            caFileList.push_back( pair );
-        }
-
-        if ( !result->httpsServerManage_->listen(
-                 QHostAddress::Any,
-                 httpsPort,
-                 crtFilePath,
-                 keyFilePath,
-                 caFileList,
-                 peerVerifyMode
-             ) )
-        {
-            qWarning() << "JQHttpServer::Service: listen port error:" << httpsPort;
-            return { };
-        }
-    }
-
-    const auto serviceUuid = config[ ServiceUuid ].toString();
-    if ( !QUuid( serviceUuid ).isNull() )
-    {
-        result->serviceUuid_ = serviceUuid;
-    }
+    if ( !result->initialize( config ) ) { return { }; }
 
     return result;
 }
 
-void JQHttpServer::Service::registerProcess( const QPointer< QObject > &process )
+void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &processor )
 {
     static QSet< QString > exceptionSlots( { "deleteLater", "_q_reregisterTimers" } );
     static QSet< QString > allowMethod( { "GET", "POST", "DELETE", "PUT" } );
 
     QString apiPathPrefix;
-    for ( auto index = 0; index < process->metaObject()->classInfoCount(); ++index )
+    for ( auto index = 0; index < processor->metaObject()->classInfoCount(); ++index )
     {
-        if ( QString( process->metaObject()->classInfo( 0 ).name() ) == "apiPathPrefix" )
+        if ( QString( processor->metaObject()->classInfo( 0 ).name() ) == "apiPathPrefix" )
         {
-            apiPathPrefix = process->metaObject()->classInfo( 0 ).value();
+            apiPathPrefix = processor->metaObject()->classInfo( 0 ).value();
         }
     }
 
-    for ( auto index = 0; index < process->metaObject()->methodCount(); ++index )
+    for ( auto index = 0; index < processor->metaObject()->methodCount(); ++index )
     {
-        const auto &&metaMethod = process->metaObject()->method( index );
+        const auto &&metaMethod = processor->metaObject()->method( index );
         if ( metaMethod.methodType() != QMetaMethod::Slot ) { continue; }
 
         ApiConfig api;
 
-        api.process = process;
+        api.process = processor;
 
         if ( metaMethod.name() == "sessionAccepted" )
         {
             schedules2_[ apiPathPrefix ] =
                 [ = ]( const QPointer< JQHttpServer::Session > &session ) {
                     QMetaObject::invokeMethod(
-                        process,
+                        processor,
                         "sessionAccepted",
                         Qt::DirectConnection,
                         Q_ARG( QPointer< JQHttpServer::Session >, session ) );
@@ -1303,7 +1222,7 @@ void JQHttpServer::Service::registerProcess( const QPointer< QObject > &process 
         }
         else if ( metaMethod.name() == "certificateVerifier" )
         {
-            certificateVerifier_ = process;
+            certificateVerifier_ = processor;
         }
         else
         {
@@ -1373,6 +1292,94 @@ void JQHttpServer::Service::httpGetFaviconIco(const QPointer< JQHttpServer::Sess
 void JQHttpServer::Service::httpOptions(const QPointer< JQHttpServer::Session > &session)
 {
     session->replyOptions();
+}
+
+bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigEnum, QVariant > &config )
+{
+    if ( config.contains( ServiceProcessor ) &&
+         config[ ServiceProcessor ].canConvert< QPointer< QObject > >() &&
+         !config[ ServiceProcessor ].value< QPointer< QObject > >().isNull() )
+    {
+        this->registerProcessor( config[ ServiceProcessor ].value< QPointer< QObject > >() );
+    }
+
+    if ( config.contains( ServiceProcessor ) &&
+         config[ ServiceProcessor ].canConvert< QList< QPointer< QObject > > >() )
+    {
+        for ( const auto &process: config[ ServiceProcessor ].value< QList< QPointer< QObject > > >() )
+        {
+            if ( !process ) { continue; }
+
+            this->registerProcessor( process );
+        }
+    }
+
+    const auto httpPort = static_cast< quint16 >( config[ ServiceHttpListenPort ].toInt() );
+    if ( httpPort > 0 )
+    {
+        this->httpServerManage_.reset( new JQHttpServer::TcpServerManage );
+        this->httpServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, this, std::placeholders::_1 ) );
+
+        if ( !this->httpServerManage_->listen(
+                 QHostAddress::Any,
+                 httpPort
+             ) )
+        {
+            qWarning() << "JQHttpServer::Service: listen port error:" << httpPort;
+            return false;
+        }
+    }
+
+    const auto httpsPort = static_cast< quint16 >( config[ ServiceHttpsListenPort ].toInt() );
+    if ( httpsPort > 0 )
+    {
+        this->httpsServerManage_.reset( new JQHttpServer::SslServerManage );
+        this->httpsServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, this, std::placeholders::_1 ) );
+
+        QSslSocket::PeerVerifyMode peerVerifyMode = QSslSocket::VerifyNone;
+        if ( config.contains( ServiceSslPeerVerifyMode ) )
+        {
+            peerVerifyMode = static_cast< QSslSocket::PeerVerifyMode >( config[ ServiceSslPeerVerifyMode ].toInt() );
+        }
+
+        QString crtFilePath = config[ ServiceSslCrtFilePath ].toString();
+        QString keyFilePath = config[ ServiceSslKeyFilePath ].toString();
+        if ( crtFilePath.isEmpty() || keyFilePath.isEmpty() )
+        {
+            qWarning() << "JQHttpServer::Service: crt or key file path error";
+            return false;
+        }
+
+        QList< QPair< QString, QSsl::EncodingFormat > > caFileList;
+        for ( const auto &caFilePath: config[ ServiceSslCAFilePath ].toStringList() )
+        {
+            QPair< QString, QSsl::EncodingFormat > pair;
+            pair.first = caFilePath;
+            pair.second = QSsl::Pem;
+            caFileList.push_back( pair );
+        }
+
+        if ( !this->httpsServerManage_->listen(
+                 QHostAddress::Any,
+                 httpsPort,
+                 crtFilePath,
+                 keyFilePath,
+                 caFileList,
+                 peerVerifyMode
+             ) )
+        {
+            qWarning() << "JQHttpServer::Service: listen port error:" << httpsPort;
+            return false;
+        }
+    }
+
+    const auto serviceUuid = config[ ServiceUuid ].toString();
+    if ( !QUuid( serviceUuid ).isNull() )
+    {
+        this->serviceUuid_ = serviceUuid;
+    }
+
+    return true;
 }
 
 void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Session > &session)
