@@ -98,8 +98,8 @@ static QString replyFileFormat(
 
 static QString replyImageFormat(
         "HTTP/1.1 %1\r\n"
-        "Content-Type: image/png\r\n"
-        "Content-Length: %2\r\n"
+        "Content-Type: image/%2\r\n"
+        "Content-Length: %3\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Headers: Content-Type,X-Requested-With\r\n"
         "\r\n"
@@ -460,13 +460,13 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
 
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyFile" )
 
-    ioDeviceForReply_.reset( new QFile( filePath ) );
-    QPointer< QFile > file = ( qobject_cast< QFile * >( ioDeviceForReply_.data() ) );
+    replyIoDevice_.reset( new QFile( filePath ) );
+    QPointer< QFile > file = ( qobject_cast< QFile * >( replyIoDevice_.data() ) );
 
     if ( !file->open( QIODevice::ReadOnly ) )
     {
         qDebug() << "JQHttpServer::Session::replyFile: open file error:" << filePath;
-        ioDeviceForReply_.clear();
+        replyIoDevice_.clear();
         this->deleteLater();
         return;
     }
@@ -509,8 +509,8 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
         return;
     }
 
-    ioDeviceForReply_.reset( buffer );
-    ioDeviceForReply_->seek( 0 );
+    replyIoDevice_.reset( buffer );
+    replyIoDevice_->seek( 0 );
 
     replyBodySize_ = fileData.size();
 
@@ -523,7 +523,7 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
     ioDevice_->write( data );
 }
 
-void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatusCode)
+void JQHttpServer::Session::replyImage(const QImage &image, const QString &format, const int &httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyImage" )
 
@@ -531,7 +531,7 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
     {
         replyHttpCode_ = httpStatusCode;
 
-        QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ), Q_ARG( int, httpStatusCode ) );
+        QMetaObject::invokeMethod( this, "replyImage", Qt::QueuedConnection, Q_ARG( QImage, image ), Q_ARG( QString, format ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
@@ -547,7 +547,7 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
         return;
     }
 
-    if ( !image.save( buffer, "PNG" ) )
+    if ( !image.save( buffer, format.toLatin1().constData() ) )
     {
         qDebug() << "JQHttpServer::Session::replyImage: save image to buffer error";
         delete buffer;
@@ -555,14 +555,14 @@ void JQHttpServer::Session::replyImage(const QImage &image, const int &httpStatu
         return;
     }
 
-    ioDeviceForReply_.reset( buffer );
-    ioDeviceForReply_->seek( 0 );
+    replyIoDevice_.reset( buffer );
+    replyIoDevice_->seek( 0 );
 
     replyBodySize_ = buffer->buffer().size();
 
     const auto &&data =
         replyImageFormat
-            .arg( QString::number( httpStatusCode ), QString::number( replyBodySize_ ) )
+            .arg( QString::number( httpStatusCode ), format.toLower(), QString::number( replyBodySize_ ) )
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
@@ -593,14 +593,14 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
         return;
     }
 
-    ioDeviceForReply_.reset( file );
-    ioDeviceForReply_->seek( 0 );
+    replyIoDevice_.reset( file );
+    replyIoDevice_->seek( 0 );
 
     replyBodySize_ = file->size();
 
     const auto &&data =
         replyImageFormat
-            .arg( QString::number( httpStatusCode ), QString::number( replyBodySize_ ) )
+            .arg( QString::number( httpStatusCode ), QFileInfo( imageFilePath ).suffix(), QString::number( replyBodySize_ ) )
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
@@ -632,8 +632,8 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &c
         return;
     }
 
-    ioDeviceForReply_.reset( buffer );
-    ioDeviceForReply_->seek( 0 );
+    replyIoDevice_.reset( buffer );
+    replyIoDevice_->seek( 0 );
 
     replyBodySize_ = buffer->buffer().size();
 
@@ -818,16 +818,16 @@ void JQHttpServer::Session::onBytesWritten(const qint64 &written)
         return;
     }
 
-    if ( !ioDeviceForReply_.isNull() )
+    if ( !replyIoDevice_.isNull() )
     {
-        if ( ioDeviceForReply_->atEnd() )
+        if ( replyIoDevice_->atEnd() )
         {
-            ioDeviceForReply_->deleteLater();
-            ioDeviceForReply_.clear();
+            replyIoDevice_->deleteLater();
+            replyIoDevice_.clear();
         }
         else
         {
-            ioDevice_->write( ioDeviceForReply_->read( 512 * 1024 ) );
+            ioDevice_->write( replyIoDevice_->read( 512 * 1024 ) );
         }
     }
 
@@ -1262,17 +1262,40 @@ QJsonDocument JQHttpServer::Service::extractPostJsonData(const QPointer< JQHttpS
     return QJsonDocument::fromJson( session->requestBody() );
 }
 
+void JQHttpServer::Service::reply(
+    const QPointer< JQHttpServer::Session > &session,
+    const QJsonObject &data,
+    const bool &isSucceed,
+    const QString &message,
+    const int &httpStatusCode )
+{
+    QJsonObject result;
+    result[ "isSucceed" ] = isSucceed;
+    result[ "message" ] = message;
+
+    if ( !data.isEmpty() )
+    {
+        result[ "data" ] = data;
+    }
+
+    session->replyJsonObject( result, httpStatusCode );
+}
+
+void JQHttpServer::Service::reply(
+    const QPointer< JQHttpServer::Session > &session,
+    const bool &isSucceed,
+    const QString &message,
+    const int &httpStatusCode )
+{
+    reply( session, QJsonObject(), isSucceed, message, httpStatusCode );
+}
+
 void JQHttpServer::Service::httpGetPing(const QPointer< JQHttpServer::Session > &session)
 {
-    QJsonObject serverTimeData;
-    serverTimeData[ "serverTime" ] = QDateTime::currentMSecsSinceEpoch();
+    QJsonObject data;
+    data[ "serverTime" ] = QDateTime::currentMSecsSinceEpoch();
 
-    QJsonObject result;
-    result[ "status" ] = 200;
-    result[ "error" ] = 0;
-    result[ "data" ] = serverTimeData;
-
-    session->replyJsonObject( result );
+    reply( session, data );
 }
 
 void JQHttpServer::Service::httpGetFaviconIco(const QPointer< JQHttpServer::Session > &session)
@@ -1286,7 +1309,7 @@ void JQHttpServer::Service::httpGetFaviconIco(const QPointer< JQHttpServer::Sess
     painter.drawEllipse( 16, 16, 224, 224 );
     painter.end();
 
-    session->replyImage( image, 200 );
+    session->replyImage( image );
 }
 
 void JQHttpServer::Service::httpOptions(const QPointer< JQHttpServer::Session > &session)
@@ -1477,14 +1500,14 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
                 }
                 default:
                 {
-                    qDebug() << "onSessionAccepted: non match receive data type:" << it->receiveDataType;
-                    session->replyText( "404", 404 );
+                    qDebug() << "onSessionAccepted: data type not match:" << it->receiveDataType;
+                    reply( session, false, "data type not match", 404 );
                     return;
                 }
             }
 
             qDebug() << "onSessionAccepted: data error:" << it->receiveDataType;
-            session->replyText( "404", 404 );
+            reply( session, false, "data error", 404 );
             return;
         }
     }
@@ -1514,8 +1537,8 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
         return;
     }
 
-    qDebug().noquote() << "HTTP not match:" << session->requestMethod() << session->requestUrlPath();
-    session->replyText( "404", 404 );
+    qDebug().noquote() << "API not found:" << session->requestMethod() << session->requestUrlPath();
+    reply( session, false, "API not found", 404 );
 }
 
 QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper)

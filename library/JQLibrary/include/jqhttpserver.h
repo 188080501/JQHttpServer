@@ -113,7 +113,7 @@ public slots:
 
     void replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode = 200);
 
-    void replyImage(const QImage &image, const int &httpStatusCode = 200);
+    void replyImage(const QImage &image, const QString &format = "PNG", const int &httpStatusCode = 200);
 
     void replyImage(const QString &imageFilePath, const int &httpStatusCode = 200);
 
@@ -153,7 +153,7 @@ private:
     qint64     replyBodySize_ = -1;
 
     qint64                      waitWrittenByteCount_ = -1;
-    QSharedPointer< QIODevice > ioDeviceForReply_;
+    QSharedPointer< QIODevice > replyIoDevice_;
 };
 
 class JQLIBRARY_EXPORT AbstractManage: public QObject
@@ -335,6 +335,20 @@ public:
 
 
     virtual QJsonDocument extractPostJsonData( const QPointer< JQHttpServer::Session > &session );
+
+    static void reply(
+        const QPointer< JQHttpServer::Session > &session,
+        const QJsonObject &data,
+        const bool &isSucceed = true,
+        const QString &message = { },
+        const int &httpStatusCode = 200 );
+
+    static void reply(
+        const QPointer< JQHttpServer::Session > &session,
+        const bool &isSucceed = true,
+        const QString &message = { },
+        const int &httpStatusCode = 200 );
+
 
     virtual void httpGetPing( const QPointer< JQHttpServer::Session > &session );
 
