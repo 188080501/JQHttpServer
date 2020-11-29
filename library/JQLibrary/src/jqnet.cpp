@@ -679,7 +679,11 @@ void JQNet::HTTP::handle(
     }
 #endif
 
+#if ( QT_VERSION >= 0x050F00 )
+    QObject::connect( reply, static_cast< void( QNetworkReply::* )( QNetworkReply::NetworkError ) >( &QNetworkReply::errorOccurred ), [ reply, timer, onError, isCalled ](const QNetworkReply::NetworkError &code)
+#else
     QObject::connect( reply, static_cast< void( QNetworkReply::* )( QNetworkReply::NetworkError ) >( &QNetworkReply::error ), [ reply, timer, onError, isCalled ](const QNetworkReply::NetworkError &code)
+#endif
     {
         if ( *isCalled ) { return; }
         *isCalled = true;

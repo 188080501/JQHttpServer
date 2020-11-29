@@ -1543,7 +1543,11 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
 
 QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper)
 {
+#if ( QT_VERSION >= 0x050F00 )
+    const auto &&splitList = source.split( '_', Qt::SkipEmptyParts );
+#else
     const auto &&splitList = source.split( '_', QString::SkipEmptyParts );
+#endif
     QString result;
 
     for ( const auto &splitTag: splitList )
