@@ -1021,14 +1021,16 @@ namespace JQHttpServer
 
 class SslServerHelper: public QTcpServer
 {
-    void incomingConnection(qintptr socketDescriptor) final
-    {
-        onIncomingConnectionCallback_( socketDescriptor );
-    }
+    void incomingConnection(qintptr socketDescriptor) final;
 
 public:
     std::function< void(qintptr socketDescriptor) > onIncomingConnectionCallback_;
 };
+
+void JQHttpServer::SslServerHelper::incomingConnection(qintptr socketDescriptor)
+{
+    onIncomingConnectionCallback_( socketDescriptor );
+}
 
 }
 
