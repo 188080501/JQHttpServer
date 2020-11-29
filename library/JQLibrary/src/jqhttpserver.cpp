@@ -144,7 +144,7 @@ JQHttpServer::Session::Session(const QPointer< QIODevice > &socket):
         autoCloseTimer_->stop();
 
         this->receiveBuffer_.append( this->ioDevice_->readAll() );
-        this->inspectionBufferSetup1();
+        this->analyseBufferSetup1();
 
         autoCloseTimer_->start();
     } );
@@ -668,7 +668,7 @@ void JQHttpServer::Session::replyOptions()
     ioDevice_->write( buffer );
 }
 
-void JQHttpServer::Session::inspectionBufferSetup1()
+void JQHttpServer::Session::analyseBufferSetup1()
 {
     if ( !headerAcceptedFinished_ )
     {
@@ -738,7 +738,7 @@ void JQHttpServer::Session::inspectionBufferSetup1()
                      ( ( requestMethod_.toUpper() == "POST" ) && ( ( contentLength_ > 0 ) ? ( !receiveBuffer_.isEmpty() ) : ( true ) ) ) ||
                      ( ( requestMethod_.toUpper() == "PUT" ) && ( ( contentLength_ > 0 ) ? ( !receiveBuffer_.isEmpty() ) : ( true ) ) ) )
                 {
-                    this->inspectionBufferSetup2();
+                    this->analyseBufferSetup2();
                 }
             }
             else
@@ -774,11 +774,11 @@ void JQHttpServer::Session::inspectionBufferSetup1()
     }
     else
     {
-        this->inspectionBufferSetup2();
+        this->analyseBufferSetup2();
     }
 }
 
-void JQHttpServer::Session::inspectionBufferSetup2()
+void JQHttpServer::Session::analyseBufferSetup2()
 {
     requestBody_ += receiveBuffer_;
     receiveBuffer_.clear();

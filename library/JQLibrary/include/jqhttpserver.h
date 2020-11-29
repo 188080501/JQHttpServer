@@ -122,9 +122,9 @@ public slots:
     void replyOptions();
 
 private:
-    void inspectionBufferSetup1();
+    void analyseBufferSetup1();
 
-    void inspectionBufferSetup2();
+    void analyseBufferSetup2();
 
     void onBytesWritten(const qint64 &written);
 
