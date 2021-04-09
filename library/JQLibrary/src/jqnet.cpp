@@ -641,13 +641,18 @@ void JQNet::HTTP::handle(
         timer = new QTimer;
         timer->setSingleShot(true);
 
-        QObject::connect( timer, &QTimer::timeout, [ timer, onTimeout, isCalled ]()
+        QObject::connect( timer, &QTimer::timeout, [ timer, reply, onTimeout, isCalled ]()
         {
             if ( *isCalled ) { return; }
             *isCalled = true;
 
             onTimeout();
-            timer->deleteLater();
+
+            if ( timer )
+            {
+                timer->deleteLater();
+            }
+            reply->deleteLater();
         } );
         timer->start( timeout );
     }
@@ -657,15 +662,16 @@ void JQNet::HTTP::handle(
         if ( *isCalled ) { return; }
         *isCalled = true;
 
-        if ( timer )
-        {
-            timer->deleteLater();
-        }
-
         const auto &&acceptedData = reply->readAll();
         const auto &rawHeaderPairs = reply->rawHeaderPairs();
 
         onFinished( rawHeaderPairs, acceptedData );
+
+        if ( timer )
+        {
+            timer->deleteLater();
+        }
+        reply->deleteLater();
     } );
 
 #ifndef QT_NO_SSL
@@ -688,13 +694,15 @@ void JQNet::HTTP::handle(
         if ( *isCalled ) { return; }
         *isCalled = true;
 
-        if ( timer )
-        {
-            timer->deleteLater();
-        }
         const auto &&acceptedData = reply->readAll();
         const auto &rawHeaderPairs = reply->rawHeaderPairs();
 
         onError( rawHeaderPairs, code, acceptedData );
+
+        if ( timer )
+        {
+            timer->deleteLater();
+        }
+        reply->deleteLater();
     } );
 }
