@@ -39,6 +39,8 @@
 #include <QMutex>
 #include <QHostAddress>
 #include <QUrl>
+#include <QTcpSocket>
+#include <QIODevice>
 #ifndef QT_NO_SSL
 #   include <QSslCertificate>
 #   include <QSslSocket>
@@ -47,9 +49,7 @@
 // JQLibrary lib import
 #include <JQDeclare>
 
-class QIODevice;
 class QThreadPool;
-class QHostAddress;
 class QTimer;
 class QImage;
 class QTcpServer;
@@ -66,13 +66,14 @@ class JQLIBRARY_EXPORT Session: public QObject
     Q_DISABLE_COPY( Session )
 
 public:
-    Session( const QPointer< QIODevice > &socket );
+    Session( const QPointer< QTcpSocket > &socket );
 
     ~Session();
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
-    inline QPointer< QIODevice > ioDevice() { return ioDevice_; }
+    inline QPointer< QTcpSocket > socket() { return socket_; }
+
 
     QString requestSourceIp() const;
 
@@ -117,7 +118,7 @@ public slots:
 
     void replyImage(const QString &imageFilePath, const int &httpStatusCode = 200);
 
-    void replyBytes(const QByteArray &bytes, const QString &contentType = "application/octet-stream", const int &httpStatusCode = 200);
+    void replyBytes(const QByteArray &bytes, const QString &contentType = "application/octet-stream", const int &httpStatusCode = 200, const QString &exHeader = QString());
 
     void replyOptions();
 
@@ -128,10 +129,12 @@ private:
 
     void onBytesWritten(const qint64 &written);
 
+    void onStateChanged(const QAbstractSocket::SocketState &socketState);
+
 private:
     static QAtomicInt remainSession_;
 
-    QPointer< QIODevice >                                ioDevice_;
+    QPointer< QTcpSocket >                               socket_;
     std::function< void( const QPointer< Session > & ) > handleAcceptedCallback_;
     QSharedPointer< QTimer >                             autoCloseTimer_;
 

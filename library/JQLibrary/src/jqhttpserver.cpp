@@ -60,7 +60,7 @@
     }
 
 #define JQHTTPSERVER_SESSION_REPLY_PROTECTION2( functionName, ... )                                    \
-    if ( ioDevice_.isNull() )                                                                          \
+    if ( socket_.isNull() )                                                                            \
     {                                                                                                  \
         qDebug().noquote() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": error1"; \
         this->deleteLater();                                                                           \
@@ -111,6 +111,7 @@ static QString replyBytesFormat(
         "Content-Length: %3\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Headers: Content-Type,X-Requested-With\r\n"
+        "%4"
         "\r\n"
     );
 
@@ -127,8 +128,8 @@ static QString replyOptionsFormat(
 // Session
 QAtomicInt JQHttpServer::Session::remainSession_ = 0;
 
-JQHttpServer::Session::Session(const QPointer< QIODevice > &socket):
-    ioDevice_( socket ),
+JQHttpServer::Session::Session(const QPointer< QTcpSocket > &socket):
+    socket_( socket ),
     autoCloseTimer_( new QTimer )
 {
     ++remainSession_;
@@ -139,11 +140,11 @@ JQHttpServer::Session::Session(const QPointer< QIODevice > &socket):
         requestSourceIp_ = ( qobject_cast< QAbstractSocket * >( socket ) )->peerAddress().toString().replace( "::ffff:", "" );
     }
 
-    connect( ioDevice_.data(), &QIODevice::readyRead, [ this ]()
+    connect( socket_.data(), &QTcpSocket::readyRead, [ this ]()
     {
         autoCloseTimer_->stop();
 
-        this->receiveBuffer_.append( this->ioDevice_->readAll() );
+        this->receiveBuffer_.append( this->socket_->readAll() );
         this->analyseBufferSetup1();
 
         autoCloseTimer_->start();
@@ -159,9 +160,16 @@ JQHttpServer::Session::Session(const QPointer< QIODevice > &socket):
     else
 #endif
     {
-        connect( ioDevice_.data(),
-                 &QIODevice::bytesWritten,
+        connect( socket_.data(),
+                 &QTcpSocket::bytesWritten,
                  std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
+    }
+
+    if ( qobject_cast< QTcpSocket * >( socket ) )
+    {
+        connect( qobject_cast< QTcpSocket * >( socket ),
+                &QAbstractSocket::stateChanged,
+                std::bind( &JQHttpServer::Session::onStateChanged, this, std::placeholders::_1 ) );
     }
 
     autoCloseTimer_->setInterval( 30 * 1000 );
@@ -176,9 +184,9 @@ JQHttpServer::Session::~Session()
     --remainSession_;
 //    qDebug() << "remainSession:" << remainSession_ << this;
 
-    if ( !ioDevice_.isNull() )
+    if ( !socket_.isNull() )
     {
-        delete ioDevice_.data();
+        delete socket_.data();
     }
 }
 
@@ -323,9 +331,9 @@ QSslCertificate JQHttpServer::Session::peerCertificate() const
 {
     JQHTTPSERVER_SESSION_PROTECTION( "peerCertificate", QSslCertificate() )
 
-    if ( !qobject_cast< QSslSocket * >( ioDevice_ ) ) { return QSslCertificate(); }
+    if ( !qobject_cast< QSslSocket * >( socket_ ) ) { return QSslCertificate(); }
 
-    return qobject_cast< QSslSocket * >( ioDevice_ )->peerCertificate();
+    return qobject_cast< QSslSocket * >( socket_ )->peerCertificate();
 }
 #endif
 
@@ -358,7 +366,7 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size();
-    ioDevice_->write( data );
+    socket_->write( data );
 }
 
 void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
@@ -387,7 +395,7 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size();
-    ioDevice_->write( data );
+    socket_->write( data );
 }
 
 void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
@@ -415,7 +423,7 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
                               .toUtf8();
 
     waitWrittenByteCount_ = buffer.size();
-    ioDevice_->write( buffer );
+    socket_->write( buffer );
 }
 
 void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
@@ -443,7 +451,7 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
                               .toUtf8();
 
     waitWrittenByteCount_ = buffer.size();
-    ioDevice_->write( buffer );
+    socket_->write( buffer );
 }
 
 void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpStatusCode)
@@ -481,7 +489,7 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
-    ioDevice_->write( data );
+    socket_->write( data );
 }
 
 void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode)
@@ -520,7 +528,7 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + fileData.size();
-    ioDevice_->write( data );
+    socket_->write( data );
 }
 
 void JQHttpServer::Session::replyImage(const QImage &image, const QString &format, const int &httpStatusCode)
@@ -566,7 +574,7 @@ void JQHttpServer::Session::replyImage(const QImage &image, const QString &forma
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
-    ioDevice_->write( data );
+    socket_->write( data );
 }
 
 void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
@@ -604,10 +612,10 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + file->size();
-    ioDevice_->write( data );
+    socket_->write( data );
 }
 
-void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &contentType, const int &httpStatusCode)
+void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &contentType, const int &httpStatusCode, const QString &exHeader)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyBytes" )
 
@@ -615,7 +623,7 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &c
     {
         replyHttpCode_ = httpStatusCode;
 
-        QMetaObject::invokeMethod(this, "replyBytes", Qt::QueuedConnection, Q_ARG(QByteArray, bytes), Q_ARG(QString, contentType), Q_ARG(int, httpStatusCode));
+        QMetaObject::invokeMethod(this, "replyBytes", Qt::QueuedConnection, Q_ARG(QByteArray, bytes), Q_ARG(QString, contentType), Q_ARG(int, httpStatusCode), Q_ARG(QString, exHeader));
         return;
     }
 
@@ -639,11 +647,11 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &c
 
     const auto &&data =
         replyBytesFormat
-            .arg( QString::number( httpStatusCode ), contentType, QString::number( replyBodySize_ ) )
+            .arg( QString::number( httpStatusCode ), contentType, QString::number( replyBodySize_ ), exHeader )
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
-    ioDevice_->write(data);
+    socket_->write(data);
 }
 
 void JQHttpServer::Session::replyOptions()
@@ -665,7 +673,7 @@ void JQHttpServer::Session::replyOptions()
     const auto &&buffer = replyOptionsFormat.toUtf8();
 
     waitWrittenByteCount_ = buffer.size();
-    ioDevice_->write( buffer );
+    socket_->write( buffer );
 }
 
 void JQHttpServer::Session::analyseBufferSetup1()
@@ -811,10 +819,11 @@ void JQHttpServer::Session::onBytesWritten(const qint64 &written)
     autoCloseTimer_->stop();
 
     this->waitWrittenByteCount_ -= written;
+
     if ( this->waitWrittenByteCount_ <= 0 )
     {
         this->waitWrittenByteCount_ = 0;
-        QTimer::singleShot( 500, this, &QObject::deleteLater );
+        socket_->disconnectFromHost();
         return;
     }
 
@@ -827,11 +836,26 @@ void JQHttpServer::Session::onBytesWritten(const qint64 &written)
         }
         else
         {
-            ioDevice_->write( replyIoDevice_->read( 512 * 1024 ) );
+            if ( requestSourceIp_ == "127.0.0.1" )
+            {
+                socket_->write( replyIoDevice_->read( 1024 * 1024 ) );
+            }
+            else
+            {
+                socket_->write( replyIoDevice_->read( 256 * 1024 ) );
+            }
         }
     }
 
     autoCloseTimer_->start();
+}
+
+void JQHttpServer::Session::onStateChanged(const QAbstractSocket::SocketState &socketState)
+{
+    if ( socketState == QAbstractSocket::UnconnectedState )
+    {
+        this->deleteLater();
+    }
 }
 
 // AbstractManage
@@ -1409,7 +1433,7 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
 
 void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Session > &session)
 {
-    if ( certificateVerifier_ && qobject_cast< QSslSocket * >( session->ioDevice() ) )
+    if ( certificateVerifier_ && qobject_cast< QSslSocket * >( session->socket() ) )
     {
         QMetaObject::invokeMethod(
                     certificateVerifier_,

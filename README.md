@@ -8,7 +8,7 @@ JQHttpServer是基于Qt开发的轻量级HTTP/HTTPS服务器
 
 * core
 * network
-* concurrent	
+* concurrent
 * testlib（测试用，运行不需要）
 * OpenSSL（如果需要HTTPS）
 
@@ -32,24 +32,25 @@ GitHub地址：https://github.com/188080501/JQHttpServer
 
 原因是Qt底层是poll，库中又有一些跨线程操作
 
-在我的电脑（MacBookPro 16"/i9 CPU）使用siege进行测试，完整参数如下：
+在我的电脑（ MacBookPro 16" & i9 CPU & macOS 10.15.7 ）使用siege进行测试，命令行参数如下：
 
 ```siege -c 2 -r 5000 http://127.0.0.1:23412```
 
 结果如下：
 ```
-transactions: 10000
-availability: 100.00
-elapsed_time: 1.54
-data_transferred: 0.10
-response_time: 0.00
-transaction_rate: 6493.51
-throughput: 0.07
-concurrency: 1.89
-successful_transactions: 10000
-failed_transactions: 0
-longest_transaction: 0.42
-shortest_transaction: 0.00
+{	"transactions":			       10000,
+	"availability":			      100.00,
+	"elapsed_time":			        1.24,
+	"data_transferred":		        0.10,
+	"response_time":		        0.00,
+	"transaction_rate":		     8064.52,
+	"throughput":			        0.08,
+	"concurrency":			        1.90,
+	"successful_transactions":	       10000,
+	"failed_transactions":		           0,
+	"longest_transaction":		        0.35,
+	"shortest_transaction":		        0.00
+}
 ```
 
-即QPS 6493
+即QPS 8064
