@@ -854,7 +854,7 @@ void JQHttpServer::Session::onStateChanged(const QAbstractSocket::SocketState &s
 {
     if ( socketState == QAbstractSocket::UnconnectedState )
     {
-        this->deleteLater();
+        QTimer::singleShot( 20, this, &QObject::deleteLater );
     }
 }
 
