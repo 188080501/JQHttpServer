@@ -68,7 +68,7 @@ class JQLIBRARY_EXPORT Session: public QObject
 public:
     Session( const QPointer< QTcpSocket > &socket );
 
-    ~Session();
+    virtual ~Session() override;
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
@@ -167,7 +167,7 @@ class JQLIBRARY_EXPORT AbstractManage: public QObject
 public:
     AbstractManage(const int &handleMaxThreadCount);
 
-    virtual ~AbstractManage();
+    virtual ~AbstractManage() override;
 
     inline void setHttpAcceptedCallback(const std::function< void(const QPointer< Session > &session) > &httpAcceptedCallback) { httpAcceptedCallback_ = httpAcceptedCallback; }
 
@@ -219,16 +219,16 @@ class JQLIBRARY_EXPORT TcpServerManage: public AbstractManage
 public:
     TcpServerManage(const int &handleMaxThreadCount = 2);
 
-    ~TcpServerManage();
+    virtual ~TcpServerManage() override;
 
     bool listen( const QHostAddress &address, const quint16 &port );
 
 private:
-    bool isRunning();
+    bool isRunning() override;
 
-    bool onStart();
+    bool onStart() override;
 
-    void onFinish();
+    void onFinish() override;
 
 private:
     QPointer< QTcpServer > tcpServer_;
@@ -248,7 +248,7 @@ class JQLIBRARY_EXPORT SslServerManage: public AbstractManage
 public:
     SslServerManage(const int &handleMaxThreadCount = 2);
 
-    ~SslServerManage();
+    virtual ~SslServerManage() override;
 
     bool listen( const QHostAddress &                                   address,
                  const quint16 &                                        port,
@@ -258,11 +258,11 @@ public:
                  const QSslSocket::PeerVerifyMode &                     peerVerifyMode = QSslSocket::VerifyNone );
 
 private:
-    bool isRunning();
+    bool isRunning() override;
 
-    bool onStart();
+    bool onStart() override;
 
-    void onFinish();
+    void onFinish() override;
 
 private:
     QPointer< SslServerHelper > tcpServer_;
@@ -328,7 +328,7 @@ protected:
     Service() = default;
 
 public:
-    ~Service() = default;
+    virtual ~Service() override = default;
 
 
     static QSharedPointer< Service > createService( const QMap< ServiceConfigEnum, QVariant > &config );
