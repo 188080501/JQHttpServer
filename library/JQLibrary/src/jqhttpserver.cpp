@@ -1215,7 +1215,7 @@ void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &proces
 
         ApiConfig api;
 
-        api.process = processor;
+        api.processor = processor;
 
         if ( metaMethod.name() == "sessionAccepted" )
         {
@@ -1225,7 +1225,7 @@ void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &proces
                         processor,
                         "sessionAccepted",
                         Qt::DirectConnection,
-                        Q_ARG( QPointer< JQHttpServer::Session >, session ) );
+                        Q_ARG( QPointer<JQHttpServer::Session>, session ) );
                 };
 
             continue;
@@ -1258,7 +1258,7 @@ void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &proces
         api.slotName = QString( metaMethod.name() );
         if ( exceptionSlots.contains( api.slotName ) ) { continue; }
 
-        for ( const auto &methdo: allowMethod )
+        for ( const auto &methdo: qAsConst( allowMethod ) )
         {
             if ( api.slotName.startsWith( methdo.toLower() ) )
             {
@@ -1271,15 +1271,32 @@ void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &proces
         api.apiName = api.slotName.mid( api.apiMethod.size() );
         if ( api.apiName.isEmpty() ) { continue; }
 
-        api.apiName[ 0 ] = api.apiName[ 0 ].toLower();
-        api.apiName.push_front( "/" );
-
-        if ( !apiPathPrefix.isEmpty() )
         {
-            api.apiName = apiPathPrefix + api.apiName;
+            auto apiName = api.apiName;
+
+            apiName.push_front( "/" );
+
+            if ( !apiPathPrefix.isEmpty() )
+            {
+                apiName = apiPathPrefix + apiName;
+            }
+
+            schedules_[ api.apiMethod.toUpper() ][ apiName ] = api;
         }
 
-        schedules_[ api.apiMethod.toUpper() ][ api.apiName ] = api;
+        {
+            auto apiName = api.apiName;
+
+            apiName[ 0 ] = apiName[ 0 ].toLower();
+            apiName.push_front( "/" );
+
+            if ( !apiPathPrefix.isEmpty() )
+            {
+                apiName = apiPathPrefix + apiName;
+            }
+
+            schedules_[ api.apiMethod.toUpper() ][ apiName ] = api;
+        }
     }
 }
 
@@ -1385,7 +1402,7 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
         this->httpsServerManage_.reset( new JQHttpServer::SslServerManage );
         this->httpsServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, this, std::placeholders::_1 ) );
 
-        QSslSocket::PeerVerifyMode peerVerifyMode = QSslSocket::VerifyNone;
+        auto peerVerifyMode = QSslSocket::VerifyNone;
         if ( config.contains( ServiceSslPeerVerifyMode ) )
         {
             peerVerifyMode = static_cast< QSslSocket::PeerVerifyMode >( config[ ServiceSslPeerVerifyMode ].toInt() );
@@ -1440,7 +1457,7 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
                     "certificateVerifier",
                     Qt::DirectConnection,
                     Q_ARG( QSslCertificate, session->peerCertificate() ),
-                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                    Q_ARG( QPointer<JQHttpServer::Session>, session )
                 );
 
         if ( session->replyHttpCode() >= 0 ) { return; }
@@ -1469,10 +1486,10 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
                 case NoReceiveDataType:
                 {
                     QMetaObject::invokeMethod(
-                                it->process,
+                                it->processor,
                                 it->slotName.toLatin1().data(),
                                 Qt::DirectConnection,
-                                Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                Q_ARG( QPointer<JQHttpServer::Session>, session )
                             );
                     return;
                 }
@@ -1482,11 +1499,11 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
                     if ( !json.isNull() )
                     {
                         QMetaObject::invokeMethod(
-                                    it->process,
+                                    it->processor,
                                     it->slotName.toLatin1().data(),
                                     Qt::DirectConnection,
                                     Q_ARG( QVariantList, json.array().toVariantList() ),
-                                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                    Q_ARG( QPointer<JQHttpServer::Session>, session )
                                 );
                         return;
                     }
@@ -1498,11 +1515,11 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
                     if ( !json.isNull() )
                     {
                         QMetaObject::invokeMethod(
-                                    it->process,
+                                    it->processor,
                                     it->slotName.toLatin1().data(),
                                     Qt::DirectConnection,
                                     Q_ARG( QVariantMap, json.object().toVariantMap() ),
-                                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                    Q_ARG( QPointer<JQHttpServer::Session>, session )
                                 );
                         return;
                     }
@@ -1514,11 +1531,11 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
                     if ( !json.isNull() )
                     {
                         QMetaObject::invokeMethod(
-                                    it->process,
+                                    it->processor,
                                     it->slotName.toLatin1().data(),
                                     Qt::DirectConnection,
-                                    Q_ARG( QList< QVariantMap >, Service::variantListToListVariantMap( json.array().toVariantList() ) ),
-                                    Q_ARG( QPointer< JQHttpServer::Session >, session )
+                                    Q_ARG( QList<QVariantMap>, Service::variantListToListVariantMap( json.array().toVariantList() ) ),
+                                    Q_ARG( QPointer<JQHttpServer::Session>, session )
                                 );
                         return;
                     }

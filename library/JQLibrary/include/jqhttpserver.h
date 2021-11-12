@@ -304,7 +304,7 @@ private:
 
     struct ApiConfig
     {
-        QPointer< QObject > process;
+        QPointer< QObject > processor;
         QString             apiMethod;
         QString             apiName;
         QString             slotName;
