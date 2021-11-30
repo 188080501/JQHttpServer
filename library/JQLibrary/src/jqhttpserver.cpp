@@ -293,7 +293,7 @@ QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
 
     auto lines = QUrl::fromEncoded( requestUrl_.mid( indexForQueryStart + 1 ).toUtf8() ).toString().split( "&" );
 
-    for ( const auto &line_: lines )
+    for ( const auto &line_: qAsConst( lines ) )
     {
         auto line = line_;
         line.replace( "%5B", "[" );
