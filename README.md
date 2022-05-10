@@ -54,3 +54,8 @@ GitHub地址：https://github.com/188080501/JQHttpServer
 ```
 
 即QPS 8064
+
+
+## License
+
+See the [LICENSE](LICENSE.txt) file for license rights and limitations (MIT).
