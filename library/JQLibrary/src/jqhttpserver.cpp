@@ -1596,11 +1596,12 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
 
 QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper)
 {
-#if ( QT_VERSION >= 0x050F00 )
+#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 15, 0 ) )
     const auto &&splitList = source.split( '_', Qt::SkipEmptyParts );
 #else
     const auto &&splitList = source.split( '_', QString::SkipEmptyParts );
 #endif
+
     QString result;
 
     for ( const auto &splitTag: splitList )
@@ -1630,7 +1631,12 @@ QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const
                 if ( firstCharUpper )
                 {
                     result += splitTag[ 0 ].toUpper();
+
+#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 10, 0 ) )
+                    result += QStringView( splitTag ).mid( 1 );
+#else
                     result += splitTag.midRef( 1 );
+#endif
                 }
                 else
                 {
@@ -1640,7 +1646,12 @@ QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const
             else
             {
                 result += splitTag[ 0 ].toUpper();
+
+#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 10, 0 ) )
+                result += QStringView( splitTag ).mid( 1 );
+#else
                 result += splitTag.midRef( 1 );
+#endif
             }
         }
     }
