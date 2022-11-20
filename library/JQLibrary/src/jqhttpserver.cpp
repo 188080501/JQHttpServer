@@ -1631,12 +1631,7 @@ QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const
                 if ( firstCharUpper )
                 {
                     result += splitTag[ 0 ].toUpper();
-
-#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 10, 0 ) )
-                    result += QStringView( splitTag ).mid( 1 );
-#else
-                    result += splitTag.midRef( 1 );
-#endif
+                    result += std::move( splitTag.mid( 1 ) );
                 }
                 else
                 {
@@ -1646,12 +1641,7 @@ QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const
             else
             {
                 result += splitTag[ 0 ].toUpper();
-
-#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 10, 0 ) )
-                result += QStringView( splitTag ).mid( 1 );
-#else
-                result += splitTag.midRef( 1 );
-#endif
+                result += std::move( splitTag.mid( 1 ) );
             }
         }
     }
