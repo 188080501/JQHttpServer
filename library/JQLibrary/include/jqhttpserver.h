@@ -384,7 +384,7 @@ private:
     QSharedPointer< JQHttpServer::TcpServerManage > httpServerManage_;
     QSharedPointer< JQHttpServer::SslServerManage > httpsServerManage_;
 
-    QString                                     serviceUuid_;
+    QString serviceUuid_;
     QMap< QString, QMap< QString, ApiConfig > > schedules_;    // apiMethod -> apiName -> API
     QMap< QString, std::function< void( const QPointer< JQHttpServer::Session > &session ) > > schedules2_; // apiPathPrefix -> callback
     QPointer< QObject > certificateVerifier_;

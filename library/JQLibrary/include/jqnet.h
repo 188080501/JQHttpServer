@@ -36,12 +36,14 @@
 #include <functional>
 
 // Qt lib import
+#include <QPointer>
 #include <QSharedPointer>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QHttpMultiPart>
 #include <QNetworkInterface>
 #include <QNetworkAddressEntry>
+#include <QMutex>
 
 // JQLibrary lib import
 #include <JQDeclare>
@@ -73,7 +75,7 @@ public:
     ~HTTP() = default;
 
 public:
-    inline QNetworkAccessManager &manage() { return manage_; }
+    QNetworkAccessManager &manage();
 
 
     bool get(
@@ -203,7 +205,8 @@ private:
         );
 
 private:
-    QNetworkAccessManager manage_;
+   inline static QMap<QThread *, QPointer<QNetworkAccessManager>> manageMap_;
+   static QMutex manageMutex_;
 };
 
 }
