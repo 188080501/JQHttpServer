@@ -648,10 +648,13 @@ void JQNet::HTTP::handle(
     )
 {
     auto &manage = this->manage();
+
+#if ( QT_VERSION <= QT_VERSION_CHECK( 5, 14, 0 ) )
     if( manage.networkAccessible() == QNetworkAccessManager::NotAccessible )
     {
         manage.setNetworkAccessible(QNetworkAccessManager::Accessible );
     }
+#endif
 
     QSharedPointer< bool > isCalled( new bool( false ) );
 
@@ -705,7 +708,7 @@ void JQNet::HTTP::handle(
     }
 #endif
 
-#if ( QT_VERSION >= 0x050F00 )
+#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 15, 0 ) )
     QObject::connect( reply, static_cast< void( QNetworkReply::* )( QNetworkReply::NetworkError ) >( &QNetworkReply::errorOccurred ), [ reply, timer, onError, isCalled ](const QNetworkReply::NetworkError &code)
 #else
     QObject::connect( reply, static_cast< void( QNetworkReply::* )( QNetworkReply::NetworkError ) >( &QNetworkReply::error ), [ reply, timer, onError, isCalled ](const QNetworkReply::NetworkError &code)
