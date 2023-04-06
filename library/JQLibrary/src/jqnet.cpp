@@ -41,9 +41,8 @@
 #   include "JQFoundation.h"
 #endif
 
-
+QMap< QThread *, QPointer< QNetworkAccessManager > > JQNet::HTTP::manageMap_;
 QMutex JQNet::HTTP::manageMutex_;
-
 
 QNetworkAddressEntry JQNet::getFirstNetworkAddressEntry()
 {
@@ -448,7 +447,7 @@ bool JQNet::HTTP::patch(
     receiveBuffer.clear();
 
     QEventLoop eventLoop;
-    auto reply = manage_.sendCustomRequest( request, "PATCH", body );
+    auto reply = manage().sendCustomRequest( request, "PATCH", body );
     bool isFail = false;
 
     QObject::connect( qApp, &QCoreApplication::aboutToQuit, &eventLoop, &QEventLoop::quit );
@@ -484,7 +483,7 @@ void JQNet::HTTP::patch(
         const int &timeout
     )
 {
-    auto reply = manage_.sendCustomRequest( request, "PATCH", body );
+    auto reply = manage().sendCustomRequest( request, "PATCH", body );
 
     this->handle(
         reply,
@@ -648,9 +647,11 @@ void JQNet::HTTP::handle(
         const std::function<void ()> &onTimeout
     )
 {
-    QNetworkAccessManager& manage = this->manage();
-    if(manage.networkAccessible() == QNetworkAccessManager::NotAccessible)
-       manage.setNetworkAccessible(QNetworkAccessManager::Accessible);
+    auto &manage = this->manage();
+    if( manage.networkAccessible() == QNetworkAccessManager::NotAccessible )
+    {
+        manage.setNetworkAccessible(QNetworkAccessManager::Accessible );
+    }
 
     QSharedPointer< bool > isCalled( new bool( false ) );
 
@@ -726,7 +727,7 @@ void JQNet::HTTP::handle(
     } );
 }
 
-QNetworkAccessManager& JQNet::HTTP::manage()
+QNetworkAccessManager &JQNet::HTTP::manage()
 {
     QMutexLocker locker(&manageMutex_);
     auto it = manageMap_.find(QThread::currentThread());

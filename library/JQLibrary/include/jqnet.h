@@ -205,7 +205,7 @@ private:
         );
 
 private:
-   inline static QMap<QThread *, QPointer<QNetworkAccessManager>> manageMap_;
+   static QMap< QThread *, QPointer< QNetworkAccessManager > > manageMap_;
    static QMutex manageMutex_;
 };
 
