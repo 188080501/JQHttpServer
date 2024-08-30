@@ -35,8 +35,8 @@ Makefile*
 *build-*
 
 # QtCreator
-
 *.autosave
+*.TMP
 
 # QtCtreator Qml
 *.qmlproject.user
@@ -47,3 +47,6 @@ CMakeLists.txt.user*
 
 ### macOS ###
 *.DS_Store
+
+### build ###
+/build
