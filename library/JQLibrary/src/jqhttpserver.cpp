@@ -301,11 +301,9 @@ QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
 
     QMap< QString, QString > result;
 
-    auto lines = QUrl::fromEncoded( requestUrl_.mid( indexForQueryStart + 1 ).toUtf8() ).toString().split( "&" );
-
-    for ( const auto &line_: qAsConst( lines ) )
+    const auto lines = QUrl::fromEncoded( requestUrl_.mid( indexForQueryStart + 1 ).toUtf8() ).toString().split( "&" );
+    for ( auto line: lines )
     {
-        auto line = line_;
         line.replace( "%5B", "[" );
         line.replace( "%5D", "]" );
         line.replace( "%7B", "{" );
@@ -920,7 +918,7 @@ bool JQHttpServer::AbstractManage::startServerThread()
 {
     QSemaphore semaphore;
 
-    QtConcurrent::run( serverThreadPool_.data(), [ &semaphore, this ]()
+    auto f = QtConcurrent::run( serverThreadPool_.data(), [ &semaphore, this ]()
     {
         QEventLoop eventLoop;
         QObject::connect( this, &AbstractManage::readyToClose, &eventLoop, &QEventLoop::quit );
@@ -937,6 +935,7 @@ bool JQHttpServer::AbstractManage::startServerThread()
 
         this->onFinish();
     } );
+    Q_UNUSED( f );
 
     semaphore.acquire( 1 );
 
@@ -969,7 +968,7 @@ void JQHttpServer::AbstractManage::newSession(const QPointer< Session > &session
 
 void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &session)
 {
-    QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
+    auto f =QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
     {
         if ( !this->httpAcceptedCallback_ )
         {
@@ -979,6 +978,7 @@ void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &ses
 
         this->httpAcceptedCallback_( session );
     } );
+    Q_UNUSED( f )
 }
 
 // TcpServerManage
@@ -1127,7 +1127,11 @@ bool JQHttpServer::SslServerManage::listen(
     sslConfiguration_->setPeerVerifyDepth( 1 );
     sslConfiguration_->setLocalCertificate( sslCertificate );
     sslConfiguration_->setPrivateKey( sslKey );
+#if ( QT_VERSION >= QT_VERSION_CHECK( 6, 3, 0 ) )
+    sslConfiguration_->setProtocol( QSsl::TlsV1_2OrLater );
+#else
     sslConfiguration_->setProtocol( QSsl::TlsV1_1OrLater );
+#endif
     sslConfiguration_->setCaCertificates( caCertificates );
 
     return this->initialize();
@@ -1206,8 +1210,8 @@ QSharedPointer< JQHttpServer::Service > JQHttpServer::Service::createService(con
 
 void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &processor )
 {
-    static QSet< QString > exceptionSlots( { "deleteLater", "_q_reregisterTimers" } );
-    static QSet< QString > allowMethod( { "GET", "POST", "DELETE", "PUT" } );
+    static const QSet< QString > exceptionSlots( { "deleteLater", "_q_reregisterTimers" } );
+    static const QSet< QString > allowMethod( { "GET", "POST", "DELETE", "PUT" } );
 
     QString apiPathPrefix;
     for ( auto index = 0; index < processor->metaObject()->classInfoCount(); ++index )
@@ -1268,7 +1272,7 @@ void JQHttpServer::Service::registerProcessor( const QPointer< QObject > &proces
         api.slotName = QString( metaMethod.name() );
         if ( exceptionSlots.contains( api.slotName ) ) { continue; }
 
-        for ( const auto &methdo: qAsConst( allowMethod ) )
+        for ( const auto &methdo: allowMethod )
         {
             if ( api.slotName.startsWith( methdo.toLower() ) )
             {
@@ -1358,7 +1362,7 @@ void JQHttpServer::Service::httpGetFaviconIco(const QPointer< JQHttpServer::Sess
 
     QPainter painter( &image );
     painter.setPen( Qt::NoPen );
-    painter.setBrush( QColor( "#ff00ff" ) );
+    painter.setBrush( QColor( 255, 0, 255 ) );
     painter.drawEllipse( 16, 16, 224, 224 );
     painter.end();
 
@@ -1382,7 +1386,8 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
     if ( config.contains( ServiceProcessor ) &&
          config[ ServiceProcessor ].canConvert< QList< QPointer< QObject > > >() )
     {
-        for ( const auto &process: config[ ServiceProcessor ].value< QList< QPointer< QObject > > >() )
+        const auto processList = config[ ServiceProcessor ].value< QList< QPointer< QObject > > >();
+        for ( const auto &process: processList )
         {
             if ( !process ) { continue; }
 
@@ -1427,7 +1432,9 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
         }
 
         QList< QPair< QString, QSsl::EncodingFormat > > caFileList;
-        for ( const auto &caFilePath: config[ ServiceSslCAFilePath ].toStringList() )
+
+        const auto caFilePathList = config[ ServiceSslCAFilePath ].toStringList();
+        for ( const auto &caFilePath: caFilePathList )
         {
             QPair< QString, QSsl::EncodingFormat > pair;
             pair.first = caFilePath;

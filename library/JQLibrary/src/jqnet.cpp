@@ -73,7 +73,8 @@ QList< QPair< QNetworkAddressEntry, QNetworkInterface > > JQNet::getNetworkAddre
 
         if ( ridVm && interface.humanReadableName().startsWith( "vm" ) ) { continue; }
 
-        for ( const auto &entry: static_cast< QList<QNetworkAddressEntry> >( interface.addressEntries() ) )
+        const auto entries = interface.addressEntries();
+        for ( const auto &entry: entries )
         {
             if ( entry.ip().toIPv4Address() )
             {
@@ -647,9 +648,9 @@ void JQNet::HTTP::handle(
         const std::function<void ()> &onTimeout
     )
 {
+#if ( QT_VERSION <= QT_VERSION_CHECK( 5, 14, 0 ) )
     auto &manage = this->manage();
 
-#if ( QT_VERSION <= QT_VERSION_CHECK( 5, 14, 0 ) )
     if( manage.networkAccessible() == QNetworkAccessManager::NotAccessible )
     {
         manage.setNetworkAccessible(QNetworkAccessManager::Accessible );
