@@ -309,6 +309,8 @@ QMap< QString, QString > JQHttpServer::Session::requestUrlQuery() const
         line.replace( "%7B", "{" );
         line.replace( "%7D", "}" );
         line.replace( "%5E", "^" );
+        line.replace( "%3A", ":" );
+        line.replace( "%2F", "/" );
 
         auto indexOf = line.indexOf( "=" );
         if ( indexOf > 0 )
