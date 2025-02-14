@@ -160,20 +160,10 @@ JQHttpServer::Session::Session(const QPointer< QTcpSocket > &socket):
         autoCloseTimer_->start();
     } );
 
-#ifndef QT_NO_SSL
-    if ( qobject_cast< QSslSocket * >( socket ) )
-    {
-        connect( qobject_cast< QSslSocket * >( socket ),
-                 &QSslSocket::encryptedBytesWritten,
-                 std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
-    }
-    else
-#endif
-    {
-        connect( socket_.data(),
-                 &QTcpSocket::bytesWritten,
-                 std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
-    }
+    connect(
+        socket_.data(),
+        &QTcpSocket::bytesWritten,
+        std::bind( &JQHttpServer::Session::onBytesWritten, this, std::placeholders::_1 ) );
 
     if ( qobject_cast< QTcpSocket * >( socket ) )
     {
