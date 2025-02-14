@@ -143,22 +143,25 @@ JQHttpServer::Session::Session(const QPointer< QTcpSocket > &socket):
     autoCloseTimer_( new QTimer )
 {
     ++remainSession_;
-//    qDebug() << "remainSession:" << remainSession_ << this;
 
     if ( qobject_cast< QAbstractSocket * >( socket ) )
     {
         requestSourceIp_ = ( qobject_cast< QAbstractSocket * >( socket ) )->peerAddress().toString().replace( "::ffff:", "" );
     }
 
-    connect( socket_.data(), &QTcpSocket::readyRead, [ this ]()
-    {
-        autoCloseTimer_->stop();
+    connect(
+        socket_.data(),
+        &QTcpSocket::readyRead,
+        this,
+        [ this ]()
+        {
+            autoCloseTimer_->stop();
 
-        this->receiveBuffer_.append( this->socket_->readAll() );
-        this->analyseBufferSetup1();
+            this->receiveBuffer_.append( this->socket_->readAll() );
+            this->analyseBufferSetup1();
 
-        autoCloseTimer_->start();
-    } );
+            autoCloseTimer_->start();
+        } );
 
     connect(
         socket_.data(),
@@ -167,22 +170,26 @@ JQHttpServer::Session::Session(const QPointer< QTcpSocket > &socket):
 
     if ( qobject_cast< QTcpSocket * >( socket ) )
     {
-        connect( qobject_cast< QTcpSocket * >( socket ),
-                &QAbstractSocket::stateChanged,
-                std::bind( &JQHttpServer::Session::onStateChanged, this, std::placeholders::_1 ) );
+        connect(
+            qobject_cast< QTcpSocket * >( socket ),
+            &QAbstractSocket::stateChanged,
+            std::bind( &JQHttpServer::Session::onStateChanged, this, std::placeholders::_1 ) );
     }
 
     autoCloseTimer_->setInterval( 30 * 1000 );
     autoCloseTimer_->setSingleShot( true );
     autoCloseTimer_->start();
 
-    connect( autoCloseTimer_.data(), &QTimer::timeout, this, &QObject::deleteLater );
+    connect(
+        autoCloseTimer_.data(),
+        &QTimer::timeout,
+        this,
+        &QObject::deleteLater );
 }
 
 JQHttpServer::Session::~Session()
 {
     --remainSession_;
-//    qDebug() << "remainSession:" << remainSession_ << this;
 
     if ( !socket_.isNull() )
     {
@@ -651,7 +658,7 @@ void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &c
             .toUtf8();
 
     waitWrittenByteCount_ = data.size() + buffer->buffer().size();
-    socket_->write(data);
+    socket_->write( data );
 }
 
 void JQHttpServer::Session::replyOptions()
@@ -913,7 +920,11 @@ bool JQHttpServer::AbstractManage::startServerThread()
     auto f = QtConcurrent::run( serverThreadPool_.data(), [ &semaphore, this ]()
     {
         QEventLoop eventLoop;
-        QObject::connect( this, &AbstractManage::readyToClose, &eventLoop, &QEventLoop::quit );
+        QObject::connect(
+            this,
+            &AbstractManage::readyToClose,
+            &eventLoop,
+            &QEventLoop::quit );
 
         if ( !this->onStart() )
         {
@@ -949,12 +960,15 @@ void JQHttpServer::AbstractManage::newSession(const QPointer< Session > &session
     session->setHandleAcceptedCallback( [ this ](const QPointer< JQHttpServer::Session > &session){ this->handleAccepted( session ); } );
 
     auto session_ = session.data();
-    connect( session.data(), &QObject::destroyed, [ this, session_ ]()
-    {
-        this->mutex_.lock();
-        this->availableSessions_.remove( session_ );
-        this->mutex_.unlock();
-    } );
+    connect(
+        session.data(),
+        &QObject::destroyed,
+        [ this, session_ ]()
+        {
+            this->mutex_.lock();
+            this->availableSessions_.remove( session_ );
+            this->mutex_.unlock();
+        } );
     availableSessions_.insert( session.data() );
 }
 
@@ -1007,12 +1021,16 @@ bool JQHttpServer::TcpServerManage::onStart()
 
     mutex_.unlock();
 
-    QObject::connect( tcpServer_.data(), &QTcpServer::newConnection, [ this ]()
-    {
-        auto socket = this->tcpServer_->nextPendingConnection();
+    QObject::connect(
+        tcpServer_.data(),
+        &QTcpServer::newConnection,
+        tcpServer_.data(),
+        [ this ]()
+        {
+            auto socket = this->tcpServer_->nextPendingConnection();
 
-        this->newSession( new Session( socket ) );
-    } );
+            this->newSession( new Session( socket ) );
+        } );
 
     if ( !tcpServer_->listen( listenAddress_, listenPort_ ) )
     {
@@ -1119,11 +1137,7 @@ bool JQHttpServer::SslServerManage::listen(
     sslConfiguration_->setPeerVerifyDepth( 1 );
     sslConfiguration_->setLocalCertificate( sslCertificate );
     sslConfiguration_->setPrivateKey( sslKey );
-#if ( QT_VERSION >= QT_VERSION_CHECK( 6, 3, 0 ) )
     sslConfiguration_->setProtocol( QSsl::TlsV1_2OrLater );
-#else
-    sslConfiguration_->setProtocol( QSsl::TlsV1_1OrLater );
-#endif
     sslConfiguration_->setCaCertificates( caCertificates );
 
     return this->initialize();
@@ -1144,21 +1158,26 @@ bool JQHttpServer::SslServerManage::onStart()
 
     tcpServer_->onIncomingConnectionCallback_ = [ this ](qintptr socketDescriptor)
     {
-//        qDebug() << "incomming";
-
         auto sslSocket = new QSslSocket;
 
         sslSocket->setSslConfiguration( *sslConfiguration_ );
 
-        QObject::connect( sslSocket, &QSslSocket::encrypted, [ this, sslSocket ]()
-        {
-            this->newSession( new Session( sslSocket ) );
-        } );
+        QObject::connect(
+            sslSocket,
+            &QSslSocket::encrypted,
+            sslSocket,
+            [ this, sslSocket ]()
+            {
+                this->newSession( new Session( sslSocket ) );
+            } );
 
-//        QObject::connect( sslSocket, static_cast< void(QSslSocket::*)(const QList<QSslError> &errors) >(&QSslSocket::sslErrors), [](const QList<QSslError> &errors)
-//        {
-//            qDebug() << "sslErrors:" << errors;
-//        } );
+        // QObject::connect(
+        //     sslSocket,
+        //     static_cast< void(QSslSocket::*)(const QList<QSslError> &errors) >(&QSslSocket::sslErrors),
+        //     [](const QList<QSslError> &errors)
+        //     {
+        //         qDebug() << "sslErrors:" << errors;
+        //     } );
 
         sslSocket->setSocketDescriptor( socketDescriptor );
         sslSocket->startServerEncryption();
