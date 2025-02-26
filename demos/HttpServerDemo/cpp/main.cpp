@@ -40,18 +40,14 @@ void initializeHttpsServer()
     const auto listenSucceed = sslServerManage.listen( QHostAddress::Any, 23413, ":/server.crt", ":/server.key" );
     qDebug() << "HTTPS server listen:" << listenSucceed;
 
-    // 这是我在一个实际项目中用的配置（用认证的证书，访问时带绿色小锁），其中涉及到隐私的细节已经被替换，但是任然能够看出整体用法
+    // 这是我在一个实际项目中用的配置（用认证的证书，访问时带绿色小锁）
+    // 文件路径需要替换为实际的路径，crt中需要配置完整的证书链
     /*
     qDebug() << "listen:" << sslServerManage.listen(
                     QHostAddress::Any,
                     24684,
                     "xxx/__xxx_com.crt",
-                    "xxx/__xxx_com.key",
-                    {
-                        { "xxx/__xxx_com.ca-bundle", QSsl::Pem },
-                        { "xxx/COMODO RSA Certification Authority.crt", QSsl::Pem },
-                        { "xxx/COMODO RSA Domain Validation Secure Server CA.cer", QSsl::Der }
-                    }
+                    "xxx/__xxx_com.key"
                 );
     */
 #else

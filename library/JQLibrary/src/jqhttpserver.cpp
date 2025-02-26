@@ -1091,51 +1091,40 @@ JQHttpServer::SslServerManage::~SslServerManage()
 }
 
 bool JQHttpServer::SslServerManage::listen(
-        const QHostAddress &address,
-        const quint16 &port,
-        const QString &crtFilePath,
-        const QString &keyFilePath,
-        const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList,
-        const QSslSocket::PeerVerifyMode &peerVerifyMode
-    )
+    const QHostAddress &address,
+    const quint16 &     port,
+    const QString &     crtFilePath,
+    const QString &     keyFilePath )
 {
     listenAddress_ = address;
     listenPort_ = port;
 
-    QFile fileForCrt( crtFilePath );
-    if ( !fileForCrt.open( QIODevice::ReadOnly ) )
+    QFile crtFile( crtFilePath );
+    if ( !crtFile.open( QIODevice::ReadOnly ) )
     {
         qDebug() << "SslServerManage::listen: error: can not open file:" << crtFilePath;
         return false;
     }
 
-    QFile fileForKey( keyFilePath );
-    if ( !fileForKey.open( QIODevice::ReadOnly ) )
+    QFile keyFile( keyFilePath );
+    if ( !keyFile.open( QIODevice::ReadOnly ) )
     {
         qDebug() << "SslServerManage::listen: error: can not open file:" << keyFilePath;
         return false;
     }
 
-    QSslCertificate sslCertificate( fileForCrt.readAll(), QSsl::Pem );
-    QSslKey sslKey( fileForKey.readAll(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey );
-
+    QSslKey sslKey( keyFile.readAll(), QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey );
+    QList< QSslCertificate > localCertificateChain;
     QList< QSslCertificate > caCertificates;
-    for ( const auto &caFile: caFileList )
-    {
-        QFile fileForCa( caFile.first );
-        if ( !fileForCa.open( QIODevice::ReadOnly ) )
-        {
-            qDebug() << "SslServerManage::listen: error: can not open file:" << caFile.first;
-            return false;
-        }
 
-        caCertificates.push_back( QSslCertificate( fileForCa.readAll(), caFile.second ) );
-    }
+#if ( QT_VERSION >= QT_VERSION_CHECK( 5, 15, 0 ) )
+    localCertificateChain = QSslCertificate::fromPath( crtFilePath );
+#else
+    localCertificateChain.push_back( QSslCertificate( crtFile.readAll(), QSsl::Pem ) );
+#endif
 
     sslConfiguration_.reset( new QSslConfiguration );
-    sslConfiguration_->setPeerVerifyMode( peerVerifyMode );
-    sslConfiguration_->setPeerVerifyDepth( 1 );
-    sslConfiguration_->setLocalCertificate( sslCertificate );
+    sslConfiguration_->setLocalCertificateChain( localCertificateChain );
     sslConfiguration_->setPrivateKey( sslKey );
     sslConfiguration_->setProtocol( QSsl::TlsV1_2OrLater );
     sslConfiguration_->setCaCertificates( caCertificates );
@@ -1428,12 +1417,6 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
         this->httpsServerManage_.reset( new JQHttpServer::SslServerManage );
         this->httpsServerManage_->setHttpAcceptedCallback( std::bind( &JQHttpServer::Service::onSessionAccepted, this, std::placeholders::_1 ) );
 
-        auto peerVerifyMode = QSslSocket::VerifyNone;
-        if ( config.contains( ServiceSslPeerVerifyMode ) )
-        {
-            peerVerifyMode = static_cast< QSslSocket::PeerVerifyMode >( config[ ServiceSslPeerVerifyMode ].toInt() );
-        }
-
         QString crtFilePath = config[ ServiceSslCrtFilePath ].toString();
         QString keyFilePath = config[ ServiceSslKeyFilePath ].toString();
         if ( crtFilePath.isEmpty() || keyFilePath.isEmpty() )
@@ -1442,24 +1425,11 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
             return false;
         }
 
-        QList< QPair< QString, QSsl::EncodingFormat > > caFileList;
-
-        const auto caFilePathList = config[ ServiceSslCAFilePath ].toStringList();
-        for ( const auto &caFilePath: caFilePathList )
-        {
-            QPair< QString, QSsl::EncodingFormat > pair;
-            pair.first = caFilePath;
-            pair.second = QSsl::Pem;
-            caFileList.push_back( pair );
-        }
-
         if ( !this->httpsServerManage_->listen(
                  QHostAddress::Any,
                  httpsPort,
                  crtFilePath,
-                 keyFilePath,
-                 caFileList,
-                 peerVerifyMode
+                 keyFilePath
              ) )
         {
             qWarning() << "JQHttpServer::Service: listen port error:" << httpsPort;

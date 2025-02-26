@@ -260,12 +260,11 @@ public:
 
     virtual ~SslServerManage() override;
 
-    bool listen( const QHostAddress &                                   address,
-                 const quint16 &                                        port,
-                 const QString &                                        crtFilePath,
-                 const QString &                                        keyFilePath,
-                 const QList< QPair< QString, QSsl::EncodingFormat > > &caFileList = {},    // [ { filePath, format } ]
-                 const QSslSocket::PeerVerifyMode &                     peerVerifyMode = QSslSocket::VerifyNone );
+    bool listen(
+        const QHostAddress &address,
+        const quint16 &     port,
+        const QString &     crtFilePath,
+        const QString &     keyFilePath );
 
 private:
     bool isRunning() override;
@@ -293,8 +292,6 @@ enum ServiceConfigEnum
     ServiceUuid,
     ServiceSslCrtFilePath,
     ServiceSslKeyFilePath,
-    ServiceSslCAFilePath,
-    ServiceSslPeerVerifyMode,
 };
 
 class Service: public QObject
