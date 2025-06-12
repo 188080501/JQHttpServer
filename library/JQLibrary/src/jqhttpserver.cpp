@@ -88,13 +88,12 @@ static QString replyTextFormat(
     );
 
 static QString replyRedirectsFormat(
-        "HTTP/1.1 %1 OK\r\n"
-        "Content-Type: %2\r\n"
-        "Content-Length: %3\r\n"
+        "HTTP/1.1 %1\r\n"
+        "Location: %2\r\n"
+        "Content-Length: 0\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Access-Control-Allow-Headers: *\r\n"
         "\r\n"
-        "%4"
     );
 
 static QString replyFileFormat(
@@ -390,15 +389,12 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
 
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyRedirects" )
 
-    const auto &&buffer = QString( "<head>\n<meta http-equiv=\"refresh\" content=\"0;URL=%1/\" />\n</head>" ).arg( targetUrl.toString() );
-    replyBodySize_ = buffer.toUtf8().size();
+    replyBodySize_ = 0;
 
     const auto &&data = replyRedirectsFormat
                             .arg(
                                 QString::number( httpStatusCode ),
-                                "text;charset=UTF-8",
-                                QString::number( replyBodySize_ ),
-                                buffer )
+                                targetUrl.toString() )
                             .toUtf8();
 
     waitWrittenByteCount_ = data.size();
