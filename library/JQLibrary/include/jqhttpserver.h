@@ -114,7 +114,7 @@ public:
 public slots:
     void replyText(const QString &replyData, const int &httpStatusCode = 200);
 
-    void replyRedirects(const QUrl &targetUrl, const int &httpStatusCode = 200);
+    void replyRedirects(const QUrl &targetUrl, const int &httpStatusCode = 302);
 
     void replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode = 200);
 

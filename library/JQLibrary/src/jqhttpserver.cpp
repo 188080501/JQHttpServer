@@ -382,14 +382,13 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
     if ( QThread::currentThread() != this->thread() )
     {
         replyHttpCode_ = httpStatusCode;
+        replyBodySize_ = 0;
 
         QMetaObject::invokeMethod( this, "replyRedirects", Qt::QueuedConnection, Q_ARG( QUrl, targetUrl ), Q_ARG( int, httpStatusCode ) );
         return;
     }
 
     JQHTTPSERVER_SESSION_REPLY_PROTECTION2( "replyRedirects" )
-
-    replyBodySize_ = 0;
 
     const auto &&data = replyRedirectsFormat
                             .arg(
