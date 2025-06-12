@@ -53,16 +53,16 @@ namespace JQNet
 
 QNetworkAddressEntry getFirstNetworkAddressEntry();
 
-QPair< QNetworkAddressEntry, QNetworkInterface > getFirstNetworkAddressEntryAndInterface(const bool &ridVm = true);
+QPair< QNetworkAddressEntry, QNetworkInterface > getFirstNetworkAddressEntryAndInterface(const bool ridVm = true);
 
-QList< QPair< QNetworkAddressEntry, QNetworkInterface > > getNetworkAddressEntryAndInterface(const bool &ridVm = true);
+QList< QPair< QNetworkAddressEntry, QNetworkInterface > > getNetworkAddressEntryAndInterface(const bool ridVm = true);
 
 QString getHostName();
 
-bool tcpReachable(const QString &hostName, const quint16 &port, const int &timeout = 5000);
+bool tcpReachable(const QString &hostName, const quint16 port, const int timeout = 5000);
 
 #ifdef JQFOUNDATION_LIB
-bool pingReachable(const QString &address, const int &timeout = 300);
+bool pingReachable(const QString &address, const int timeout = 300);
 #endif
 
 class JQLIBRARY_EXPORT HTTP
@@ -81,27 +81,27 @@ public:
     bool get(
             const QNetworkRequest &request,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     void get(
             const QNetworkRequest &request,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     bool deleteResource(
             const QNetworkRequest &request,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     void deleteResource(
             const QNetworkRequest &request,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     bool post(
@@ -109,14 +109,14 @@ public:
             const QByteArray &body,
             QList< QNetworkReply::RawHeaderPair > &receiveRawHeaderPairs,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     bool post(
             const QNetworkRequest &request,
             const QSharedPointer< QHttpMultiPart > &multiPart,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     void post(
@@ -124,21 +124,21 @@ public:
             const QByteArray &body,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     bool put(
             const QNetworkRequest &request,
             const QByteArray &body,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     bool put(
             const QNetworkRequest &request,
             const QSharedPointer< QHttpMultiPart > &multiPart,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     void put(
@@ -146,7 +146,7 @@ public:
             const QByteArray &body,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
 #if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
@@ -154,7 +154,7 @@ public:
             const QNetworkRequest &request,
             const QByteArray &body,
             QByteArray &receiveBuffer,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 
     void patch(
@@ -162,43 +162,43 @@ public:
             const QByteArray &body,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
-            const int &timeout = 30 * 1000
+            const int timeout = 30 * 1000
         );
 #endif
 
 
-    static QPair< bool, QByteArray > get(const QString &url, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > get(const QString &url, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > get(const QNetworkRequest &request, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > get(const QNetworkRequest &request, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > deleteResource(const QString &url, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > deleteResource(const QString &url, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > deleteResource(const QNetworkRequest &request, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > deleteResource(const QNetworkRequest &request, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > post(const QString &url, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > post(const QString &url, const QByteArray &body, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > post(const QNetworkRequest &request, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > post(const QNetworkRequest &request, const QByteArray &body, const int timeout = 30 * 1000);
 
-    static QPair< bool, QPair< QList< QNetworkReply::RawHeaderPair >, QByteArray > > post2(const QNetworkRequest &request, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QPair< QList< QNetworkReply::RawHeaderPair >, QByteArray > > post2(const QNetworkRequest &request, const QByteArray &body, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > post(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > post(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > put(const QString &url, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > put(const QString &url, const QByteArray &body, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QByteArray &body, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > put(const QNetworkRequest &request, const QSharedPointer< QHttpMultiPart > &multiPart, const int timeout = 30 * 1000);
 
 #if !( defined Q_OS_LINUX ) && ( QT_VERSION >= QT_VERSION_CHECK( 5, 9, 0 ) )
-    static QPair< bool, QByteArray > patch(const QString &url, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > patch(const QString &url, const QByteArray &body, const int timeout = 30 * 1000);
 
-    static QPair< bool, QByteArray > patch(const QNetworkRequest &request, const QByteArray &body, const int &timeout = 30 * 1000);
+    static QPair< bool, QByteArray > patch(const QNetworkRequest &request, const QByteArray &body, const int timeout = 30 * 1000);
 #endif
 
 private:
     void handle(
             QNetworkReply *reply,
-            const int &timeout,
+            const int timeout,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QByteArray &data) > &onFinished,
             const std::function< void(const QList< QNetworkReply::RawHeaderPair > &, const QNetworkReply::NetworkError &code, const QByteArray &data) > &onError,
             const std::function< void() > &onTimeout

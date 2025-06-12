@@ -112,23 +112,23 @@ public:
 #endif
 
 public slots:
-    void replyText(const QString &replyData, const int &httpStatusCode = 200);
+    void replyText(const QString &replyData, const int httpStatusCode = 200);
 
-    void replyRedirects(const QUrl &targetUrl, const int &httpStatusCode = 302);
+    void replyRedirects(const QUrl &targetUrl, const int httpStatusCode = 302);
 
-    void replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode = 200);
+    void replyJsonObject(const QJsonObject &jsonObject, const int httpStatusCode = 200);
 
-    void replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode = 200);
+    void replyJsonArray(const QJsonArray &jsonArray, const int httpStatusCode = 200);
 
-    void replyFile(const QString &filePath, const int &httpStatusCode = 200);
+    void replyFile(const QString &filePath, const int httpStatusCode = 200);
 
-    void replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode = 200);
+    void replyFile(const QString &fileName, const QByteArray &fileData, const int httpStatusCode = 200);
 
-    void replyImage(const QImage &image, const QString &format = "PNG", const int &httpStatusCode = 200);
+    void replyImage(const QImage &image, const QString &format = "PNG", const int httpStatusCode = 200);
 
-    void replyImage(const QString &imageFilePath, const int &httpStatusCode = 200);
+    void replyImage(const QString &imageFilePath, const int httpStatusCode = 200);
 
-    void replyBytes(const QByteArray &bytes, const QString &contentType = "application/octet-stream", const int &httpStatusCode = 200, const QString &exHeader = QString());
+    void replyBytes(const QByteArray &bytes, const QString &contentType = "application/octet-stream", const int httpStatusCode = 200, const QString &exHeader = QString());
 
     void replyOptions();
 
@@ -137,7 +137,7 @@ private:
 
     void analyseBufferSetup2();
 
-    void onBytesWritten(const qint64 &written);
+    void onBytesWritten(const qint64 written);
 
     void onStateChanged(const QAbstractSocket::SocketState &socketState);
 
@@ -175,7 +175,7 @@ class JQLIBRARY_EXPORT AbstractManage: public QObject
     Q_DISABLE_COPY( AbstractManage )
 
 public:
-    AbstractManage(const int &handleMaxThreadCount);
+    AbstractManage(const int handleMaxThreadCount);
 
     virtual ~AbstractManage() override;
 
@@ -227,11 +227,11 @@ class JQLIBRARY_EXPORT TcpServerManage: public AbstractManage
     Q_DISABLE_COPY( TcpServerManage )
 
 public:
-    TcpServerManage(const int &handleMaxThreadCount = 2);
+    TcpServerManage(const int handleMaxThreadCount = 2);
 
     virtual ~TcpServerManage() override;
 
-    bool listen( const QHostAddress &address, const quint16 &port );
+    bool listen( const QHostAddress &address, const quint16 port );
 
 private:
     bool isRunning() override;
@@ -256,13 +256,13 @@ class JQLIBRARY_EXPORT SslServerManage: public AbstractManage
     Q_DISABLE_COPY( SslServerManage )
 
 public:
-    SslServerManage(const int &handleMaxThreadCount = 2);
+    SslServerManage(const int handleMaxThreadCount = 2);
 
     virtual ~SslServerManage() override;
 
     bool listen(
         const QHostAddress &address,
-        const quint16 &     port,
+        const quint16       port,
         const QString &     crtFilePath,
         const QString &     keyFilePath );
 
@@ -349,15 +349,15 @@ public:
     static void reply(
         const QPointer< JQHttpServer::Session > &session,
         const QJsonObject &data,
-        const bool &isSucceed = true,
+        const bool isSucceed = true,
         const QString &message = { },
-        const int &httpStatusCode = 200 );
+        const int httpStatusCode = 200 );
 
     static void reply(
         const QPointer< JQHttpServer::Session > &session,
-        const bool &isSucceed = true,
+        const bool isSucceed = true,
         const QString &message = { },
-        const int &httpStatusCode = 200 );
+        const int httpStatusCode = 200 );
 
 
     virtual void httpGetPing( const QPointer< JQHttpServer::Session > &session );
@@ -373,7 +373,7 @@ private:
     void onSessionAccepted( const QPointer< JQHttpServer::Session > &session );
 
 
-    static QString snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper = false);
+    static QString snakeCaseToCamelCase(const QString &source, const bool firstCharUpper = false);
 
     static QList< QVariantMap > variantListToListVariantMap(const QVariantList &source);
 
