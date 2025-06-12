@@ -343,7 +343,7 @@ QSslCertificate JQHttpServer::Session::peerCertificate() const
 }
 #endif
 
-void JQHttpServer::Session::replyText(const QString &replyData, const int &httpStatusCode)
+void JQHttpServer::Session::replyText(const QString &replyData, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyText" )
 
@@ -375,7 +375,7 @@ void JQHttpServer::Session::replyText(const QString &replyData, const int &httpS
     socket_->write( data );
 }
 
-void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &httpStatusCode)
+void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyRedirects" )
 
@@ -400,7 +400,7 @@ void JQHttpServer::Session::replyRedirects(const QUrl &targetUrl, const int &htt
     socket_->write( data );
 }
 
-void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int &httpStatusCode)
+void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyJsonObject" )
 
@@ -428,7 +428,7 @@ void JQHttpServer::Session::replyJsonObject(const QJsonObject &jsonObject, const
     socket_->write( buffer );
 }
 
-void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int &httpStatusCode)
+void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyJsonArray" )
 
@@ -456,7 +456,7 @@ void JQHttpServer::Session::replyJsonArray(const QJsonArray &jsonArray, const in
     socket_->write( buffer );
 }
 
-void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpStatusCode)
+void JQHttpServer::Session::replyFile(const QString &filePath, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyFile" )
 
@@ -494,7 +494,7 @@ void JQHttpServer::Session::replyFile(const QString &filePath, const int &httpSt
     socket_->write( data );
 }
 
-void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray &fileData, const int &httpStatusCode)
+void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray &fileData, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyFile" )
 
@@ -533,7 +533,7 @@ void JQHttpServer::Session::replyFile(const QString &fileName, const QByteArray 
     socket_->write( data );
 }
 
-void JQHttpServer::Session::replyImage(const QImage &image, const QString &format, const int &httpStatusCode)
+void JQHttpServer::Session::replyImage(const QImage &image, const QString &format, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyImage" )
 
@@ -579,7 +579,7 @@ void JQHttpServer::Session::replyImage(const QImage &image, const QString &forma
     socket_->write( data );
 }
 
-void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &httpStatusCode)
+void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int httpStatusCode)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyImage" )
 
@@ -617,7 +617,7 @@ void JQHttpServer::Session::replyImage(const QString &imageFilePath, const int &
     socket_->write( data );
 }
 
-void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &contentType, const int &httpStatusCode, const QString &exHeader)
+void JQHttpServer::Session::replyBytes(const QByteArray &bytes, const QString &contentType, const int httpStatusCode, const QString &exHeader)
 {
     JQHTTPSERVER_SESSION_REPLY_PROTECTION( "replyBytes" )
 
@@ -814,7 +814,7 @@ void JQHttpServer::Session::analyseBufferSetup2()
     handleAcceptedCallback_( this );
 }
 
-void JQHttpServer::Session::onBytesWritten(const qint64 &written)
+void JQHttpServer::Session::onBytesWritten(const qint64 written)
 {
     if ( this->waitWrittenByteCount_ < 0 ) { return; }
 
@@ -861,7 +861,7 @@ void JQHttpServer::Session::onStateChanged(const QAbstractSocket::SocketState &s
 }
 
 // AbstractManage
-JQHttpServer::AbstractManage::AbstractManage(const int &handleMaxThreadCount)
+JQHttpServer::AbstractManage::AbstractManage(const int handleMaxThreadCount)
 {
     handleThreadPool_.reset( new QThreadPool );
     serverThreadPool_.reset( new QThreadPool );
@@ -983,7 +983,7 @@ void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &ses
 }
 
 // TcpServerManage
-JQHttpServer::TcpServerManage::TcpServerManage(const int &handleMaxThreadCount):
+JQHttpServer::TcpServerManage::TcpServerManage(const int handleMaxThreadCount):
     AbstractManage( handleMaxThreadCount )
 { }
 
@@ -995,7 +995,7 @@ JQHttpServer::TcpServerManage::~TcpServerManage()
     }
 }
 
-bool JQHttpServer::TcpServerManage::listen(const QHostAddress &address, const quint16 &port)
+bool JQHttpServer::TcpServerManage::listen(const QHostAddress &address, const quint16 port)
 {
     listenAddress_ = address;
     listenPort_ = port;
@@ -1073,7 +1073,7 @@ void JQHttpServer::SslServerHelper::incomingConnection(qintptr socketDescriptor)
 
 }
 
-JQHttpServer::SslServerManage::SslServerManage(const int &handleMaxThreadCount):
+JQHttpServer::SslServerManage::SslServerManage(const int handleMaxThreadCount):
     AbstractManage( handleMaxThreadCount )
 { }
 
@@ -1087,7 +1087,7 @@ JQHttpServer::SslServerManage::~SslServerManage()
 
 bool JQHttpServer::SslServerManage::listen(
     const QHostAddress &address,
-    const quint16 &     port,
+    const quint16       port,
     const QString &     crtFilePath,
     const QString &     keyFilePath )
 {
@@ -1317,9 +1317,9 @@ QJsonDocument JQHttpServer::Service::extractPostJsonData(const QPointer< JQHttpS
 void JQHttpServer::Service::reply(
     const QPointer< JQHttpServer::Session > &session,
     const QJsonObject &data,
-    const bool &isSucceed,
+    const bool isSucceed,
     const QString &message,
-    const int &httpStatusCode )
+    const int httpStatusCode )
 {
     QJsonObject result;
     result[ "isSucceed" ] = isSucceed;
@@ -1335,9 +1335,9 @@ void JQHttpServer::Service::reply(
 
 void JQHttpServer::Service::reply(
     const QPointer< JQHttpServer::Session > &session,
-    const bool &isSucceed,
+    const bool isSucceed,
     const QString &message,
-    const int &httpStatusCode )
+    const int httpStatusCode )
 {
     reply( session, QJsonObject(), isSucceed, message, httpStatusCode );
 }
@@ -1577,7 +1577,7 @@ void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Sess
     reply( session, false, "API not found", 404 );
 }
 
-QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const bool &firstCharUpper)
+QString JQHttpServer::Service::snakeCaseToCamelCase(const QString &source, const bool firstCharUpper)
 {
 #if ( QT_VERSION >= QT_VERSION_CHECK( 5, 15, 0 ) )
     const auto &&splitList = source.split( '_', Qt::SkipEmptyParts );
