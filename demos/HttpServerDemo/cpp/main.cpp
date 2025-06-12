@@ -28,7 +28,7 @@ void initializeHttpServer()
     tcpServerManage.setHttpAcceptedCallback( std::bind( onHttpAccepted, std::placeholders::_1 ) );
 
     const auto listenSucceed = tcpServerManage.listen( QHostAddress::Any, 23412 );
-    qDebug() << "HTTP server listen:" << listenSucceed;
+    qDebug() << "HTTP server listen:" << listenSucceed << ", on port 23412";
 }
 
 void initializeHttpsServer()
@@ -37,19 +37,10 @@ void initializeHttpsServer()
     static JQHttpServer::SslServerManage sslServerManage( 2 ); // 设置最大处理线程数，默认2个
     sslServerManage.setHttpAcceptedCallback( std::bind( onHttpAccepted, std::placeholders::_1 ) );
 
+    // 这里的证书是自签发的，所以在浏览器里肯定是报错的
+    // 要绿色小锁的话，要替换成自己的ssl证书
     const auto listenSucceed = sslServerManage.listen( QHostAddress::Any, 23413, ":/server.crt", ":/server.key" );
-    qDebug() << "HTTPS server listen:" << listenSucceed;
-
-    // 这是我在一个实际项目中用的配置（用认证的证书，访问时带绿色小锁）
-    // 文件路径需要替换为实际的路径，crt中需要配置完整的证书链
-    /*
-    qDebug() << "listen:" << sslServerManage.listen(
-                    QHostAddress::Any,
-                    24684,
-                    "xxx/__xxx_com.crt",
-                    "xxx/__xxx_com.key"
-                );
-    */
+    qDebug() << "HTTPS server listen:" << listenSucceed << ", on port 23413";
 #else
     qDebug() << "SSL not support"
 #endif
