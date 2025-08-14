@@ -40,8 +40,3 @@
 - 语言切换规则：若用户以英文提问或明确要求英文/其他语言，可切换对应语言；否则保持使用简体中文。
 - 专业术语：遇到必须保留的英文专业术语时，可直接使用英文，并在括号中补充简要中文解释。
 - 示例驱动：在 few‑shot 示例中，优先提供中文问答示例，以强化中文输出的先验概率。
-
-## git diff
-- 如果用户发给你了一个git提交hash，你需要检查这个git提交所修改的内容是否合理，并用中文回答用户
-- git提交的修改内容，不要在本地运行git命令获取，因为本地的git不可靠，需要用api获取。API header的GITHUB_TOKEN从环境变量获取，curl参考格式如下：
-    curl --request GET --url "https://api.github.com/repos/188080501/JQHttpServer/commits/xxx_git_hash" --header "Authorization: Bearer $GITHUB_TOKEN" --header "Accept: application/vnd.github.patch" --header "User-Agent: your-github-username" --header "X-GitHub-Api-Version: 2022-11-28"
