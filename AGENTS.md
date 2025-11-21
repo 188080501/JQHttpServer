@@ -40,3 +40,13 @@
 - 语言切换规则：若用户以英文提问或明确要求英文/其他语言，可切换对应语言；否则保持使用简体中文。
 - 专业术语：遇到必须保留的英文专业术语时，可直接使用英文，并在括号中补充简要中文解释。
 - 示例驱动：在 few‑shot 示例中，优先提供中文问答示例，以强化中文输出的先验概率。
+
+## CodeX
+你运行在 Windows 10 + VSCode 环境，集成终端是 Windows PowerShell 5.1。
+生成命令时必须满足：
+- 使用 PowerShell 语法，而不是 bash 语法；
+- 不要在行首输出 "$ " 提示符；
+- 不要使用 "&&" 来连接命令，改用分号 ";" 或写成多行；
+- 示例：
+  正确：Set-Location e:\Repositories\XXX; rg 'pattern'
+  错误：cd e:\Repositories\XXX && rg "pattern"
