@@ -33,6 +33,10 @@
 - 忽略文件编码有关的错误或警告。
 - 忽略文件的BOM头有关的错误或警告。
 
+## 过滤文件
+- 在所有处理中，都忽略*.tmp文件和*.user文件
+- 忽略build目录
+
 ## LLM
 - 默认使用简体中文：除非用户明确要求其他语言或上下文中使用英文，否则所有对话、解释、示例以及代码注释均应使用简体中文。
 - 系统提示 (system prompt)：在调用 LLM（如 OpenAI Codex）时，请在 system 级别的 prompt 中显式加入 请使用简体中文回答 或等效中文指令，保证模型优先选择中文回复。
@@ -42,11 +46,27 @@
 - 示例驱动：在 few‑shot 示例中，优先提供中文问答示例，以强化中文输出的先验概率。
 
 ## CodeX
-你运行在 Windows 10 + VSCode 环境，集成终端是 Windows PowerShell 5.1。
-生成命令时必须满足：
-- 使用 PowerShell 语法，而不是 bash 语法；
-- 不要在行首输出 "$ " 提示符；
-- 不要使用 "&&" 来连接命令，改用分号 ";" 或写成多行；
-- 示例：
-  正确：Set-Location e:\Repositories\XXX; rg 'pattern'
-  错误：cd e:\Repositories\XXX && rg "pattern"
+你运行在 Windows 10 + VSCode，集成终端是 Windows PowerShell 5.1。
+生成命令必须遵守：
+1）基础规则
+- 使用 PowerShell 语法，不使用 bash 语法。
+- 不要输出以 "$ " 开头的提示符。
+- 不要套用 powershell.exe -Command，只输出要执行的命令本身。
+- 不使用 "&&" 或 "||"，用 ";" 或多行代替。
+2）目录与路径
+- 切换目录：Set-Location 'e:\Repositories\XXX' 或 cd 'e:\Repositories\XXX'
+- 路径建议用单引号包裹。
+3）ripgrep (rg)
+- 写法示例：
+    Set-Location 'e:\ABC\maintainer';
+    rg 'pattern' maintainer tools
+- 正则可用 '|'。
+- rg 退出码说明：
+  - 0 = 有匹配（成功）
+  - 1 = 无匹配（正常，不算错误）
+  - 2+ = 真正的错误
+- 不要在外层再封装：'powershell.exe' -Command '...rg...'
+4）文件写入
+- 不要自动生成 Set-Content、Out-File、">"。
+- 禁止 Set-Content -Path $null 或任何空路径写法。
+- 只有我明确要求写文件且提供路径时才可生成写文件指令。
