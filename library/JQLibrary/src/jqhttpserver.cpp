@@ -971,6 +971,11 @@ void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &ses
 {
     auto f =QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
     {
+        if ( !session )
+        {
+            return;
+        }
+
         if ( !this->httpAcceptedCallback_ )
         {
             qDebug() << "JQHttpServer::Manage::handleAccepted: error, httpAcceptedCallback_ is nullptr";
@@ -1443,6 +1448,11 @@ bool JQHttpServer::Service::initialize( const QMap< JQHttpServer::ServiceConfigE
 
 void JQHttpServer::Service::onSessionAccepted(const QPointer< JQHttpServer::Session > &session)
 {
+    if ( !session )
+    {
+        return;
+    }
+
     if ( certificateVerifier_ && qobject_cast< QSslSocket * >( session->socket() ) )
     {
         QMetaObject::invokeMethod(
