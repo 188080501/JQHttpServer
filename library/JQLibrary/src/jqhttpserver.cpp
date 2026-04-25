@@ -88,7 +88,7 @@ static QString replyTextFormat(
     );
 
 static QString replyRedirectsFormat(
-        "HTTP/1.1 %1\r\n"
+        "HTTP/1.1 %1 \r\n"
         "Location: %2\r\n"
         "Content-Length: 0\r\n"
         "Access-Control-Allow-Origin: *\r\n"
@@ -106,7 +106,7 @@ static QString replyFileFormat(
     );
 
 static QString replyImageFormat(
-        "HTTP/1.1 %1\r\n"
+        "HTTP/1.1 %1 \r\n"
         "Content-Type: image/%2\r\n"
         "Content-Length: %3\r\n"
         "Access-Control-Allow-Origin: *\r\n"
