@@ -42,7 +42,7 @@ void initializeHttpsServer()
     const auto listenSucceed = sslServerManage.listen( QHostAddress::Any, 23413, ":/server.crt", ":/server.key" );
     qDebug() << "HTTPS server listen:" << listenSucceed << ", on port 23413";
 #else
-    qDebug() << "SSL not support"
+    qDebug() << "SSL not support";
 #endif
 }
 
