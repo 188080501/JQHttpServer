@@ -82,6 +82,8 @@ public:
 
     inline void setHandleAcceptedCallback(const std::function< void(const QPointer< Session > &) > &callback) { handleAcceptedCallback_ = callback; }
 
+    inline void setHandlingAccepted(const bool handlingAccepted) { handlingAccepted_ = handlingAccepted; }
+
     inline QPointer< QTcpSocket > socket() { return socket_; }
 
 
@@ -159,6 +161,7 @@ private:
 
     bool   headerAcceptedFinished_  = false;
     bool   contentAcceptedFinished_ = false;
+    bool   handlingAccepted_        = false;
     qint64 contentLength_           = -1;
 
     int        replyHttpCode_ = -1;

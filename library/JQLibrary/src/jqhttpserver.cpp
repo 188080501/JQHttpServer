@@ -70,7 +70,7 @@
     }
 
 #define JQHTTPSERVER_SESSION_REPLY_PROTECTION2( functionName, ... )                                    \
-    if ( socket_.isNull() )                                                                            \
+    if ( socket_.isNull() || ( socket_->state() == QAbstractSocket::UnconnectedState ) )               \
     {                                                                                                  \
         qDebug().noquote() << QStringLiteral( "JQHttpServer::Session::" ) + functionName + ": error1"; \
         this->deleteLater();                                                                           \
@@ -183,7 +183,16 @@ JQHttpServer::Session::Session(const QPointer< QTcpSocket > &socket):
         autoCloseTimer_.data(),
         &QTimer::timeout,
         this,
-        &QObject::deleteLater );
+        [ this ]()
+        {
+            if ( handlingAccepted_ )
+            {
+                autoCloseTimer_->start();
+                return;
+            }
+
+            this->deleteLater();
+        } );
 }
 
 JQHttpServer::Session::~Session()
@@ -856,7 +865,19 @@ void JQHttpServer::Session::onStateChanged(const QAbstractSocket::SocketState &s
 {
     if ( socketState == QAbstractSocket::UnconnectedState )
     {
-        QTimer::singleShot( 1000, this, &QObject::deleteLater );
+        QTimer::singleShot(
+                    1000,
+                    this,
+                    [ this ]()
+                    {
+                        if ( handlingAccepted_ )
+                        {
+                            autoCloseTimer_->start();
+                            return;
+                        }
+
+                        this->deleteLater();
+                    } );
     }
 }
 
@@ -969,6 +990,11 @@ void JQHttpServer::AbstractManage::newSession(const QPointer< Session > &session
 
 void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &session)
 {
+    if ( session )
+    {
+        session->setHandlingAccepted( true );
+    }
+
     auto f =QtConcurrent::run( handleThreadPool_.data(), [ this, session ]()
     {
         if ( !session )
@@ -979,10 +1005,16 @@ void JQHttpServer::AbstractManage::handleAccepted(const QPointer< Session > &ses
         if ( !this->httpAcceptedCallback_ )
         {
             qDebug() << "JQHttpServer::Manage::handleAccepted: error, httpAcceptedCallback_ is nullptr";
+            session->setHandlingAccepted( false );
             return;
         }
 
         this->httpAcceptedCallback_( session );
+
+        if ( session )
+        {
+            session->setHandlingAccepted( false );
+        }
     } );
     Q_UNUSED( f )
 }
